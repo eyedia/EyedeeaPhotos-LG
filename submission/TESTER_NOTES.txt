@@ -1,0 +1,18 @@
+Launch "Eyedeea Photos" on the LG TV.
+Note the device code shown on screen (format XXX-XXX).
+On a phone or computer, open https://www.eyedeeaphotos.com/activate
+Sign in with the test account provided below and enter the device code.
+Within about 10 seconds the TV should switch to the photo slideshow.
+Press Back on the remote to open Settings and confirm the signed-in name and email.
+Press Log out and confirm the TV returns to a new device code screen.
+
+Test account (replace before submit):
+Email: [YOUR_QA_TEST_EMAIL]
+Password: [YOUR_QA_TEST_PASSWORD]
+
+Notes:
+- Test account must have an active Eyedeea Photos subscription.
+- Account should have photos uploaded before QA testing.
+- No in-app purchases or ads.
+- Remote: Magic Remote and standard remote both supported.
+- Reference contact: support@eyediatech.com
