@@ -10,6 +10,10 @@
     "preview": "vite preview",
     "icons": "node scripts/generate-icons.js",
     "submission-assets": "node scripts/generate-submission-assets.js",
+    "verify:env": "powershell -ExecutionPolicy Bypass -File scripts/verify-dev-env.ps1",
+    "stage:webos": "powershell -ExecutionPolicy Bypass -File scripts/stage-webos.ps1 -SkipInstall",
+    "sim": "powershell -ExecutionPolicy Bypass -File scripts/launch-simulator.ps1",
+    "sim:inspect": "powershell -ExecutionPolicy Bypass -File scripts/inspect-simulator.ps1",
     "package:webos": "powershell -ExecutionPolicy Bypass -File scripts/build-ipk.ps1"
   },
   "dependencies": {

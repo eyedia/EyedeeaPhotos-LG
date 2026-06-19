@@ -19,11 +19,25 @@ $env:VITE_API_BASE_URL = "http://localhost:3001/api/v1"
 npm run dev
 ```
 
+## Testing
+
+See **[TESTING.md](TESTING.md)** for browser + simulator workflows, keyboard map, and QA checklist.
+
+Quick start:
+
+```powershell
+npm run verify:env   # check Node, webOS TV CLI, staging
+npm run dev          # browser at http://localhost:5173
+npm run sim          # build dist/ and launch webOS TV Simulator
+```
+
 ## Package for LG TV
 
-1. Install [webOS CLI](https://webostv.developer.lge.com/develop/tools/cli-dev-guide): `npm install -g @webosose/ares-cli`
-2. Enable Developer Mode on your LG TV and register the device: `ares-setup-device`
-3. Build and package:
+1. Install [webOS TV CLI](https://webostv.developer.lge.com/develop/tools/webos-tv-cli-installation) (zip download — **not** `@webosose/ares-cli`)
+2. Install one [webOS TV Simulator](https://webostv.developer.lge.com/develop/tools/simulator-installation) version (default target: webOS TV 25)
+3. Configure `LG_WEBOS_TV_SDK_HOME` and add CLI `bin` to PATH — details in [TESTING.md](TESTING.md)
+4. Enable Developer Mode on your LG TV and register the device: `ares-setup-device`
+5. Build and package:
 
 ```powershell
 npm run package:webos

@@ -11,31 +11,13 @@ try {
   Write-Host "Installing dependencies..."
   npm install
 
-  Write-Host "Generating icons..."
-  npm run icons
-
-  Write-Host "Building web app..."
-  npm run build
+  & "$PSScriptRoot\stage-webos.ps1" -SkipInstall
 
   $Stage = Join-Path $Root "dist"
-  if (-not (Test-Path $Stage)) {
-    throw "Build output not found at dist/"
-  }
-
-  Write-Host "Copying webOS metadata into dist..."
-  Copy-Item -Force (Join-Path $Root "appinfo.json") (Join-Path $Stage "appinfo.json")
-  Copy-Item -Force (Join-Path $Root "public\icon.png") (Join-Path $Stage "icon.png")
-  Copy-Item -Force (Join-Path $Root "public\largeIcon.png") (Join-Path $Stage "largeIcon.png")
-  Copy-Item -Force (Join-Path $Root "public\logo.svg") (Join-Path $Stage "logo.svg")
-
-  if (-not (Test-Path (Join-Path $Stage "webOSTVjs\webOSTV.js"))) {
-    New-Item -ItemType Directory -Force -Path (Join-Path $Stage "webOSTVjs") | Out-Null
-    Copy-Item -Force (Join-Path $Root "public\webOSTVjs\webOSTV.js") (Join-Path $Stage "webOSTVjs\webOSTV.js")
-  }
 
   $aresPackage = Get-Command ares-package -ErrorAction SilentlyContinue
   if (-not $aresPackage) {
-    Write-Warning "ares-package not found. Install webOS CLI: npm install -g @webosose/ares-cli"
+    Write-Warning "ares-package not found. Install webOS TV CLI (see TESTING.md)."
     Write-Host "Staged app is ready at dist/ - run 'ares-package dist' after installing CLI."
     exit 0
   }

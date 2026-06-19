@@ -5,3 +5,5 @@ dist-package/
 .DS_Store
 .env
 .env.local
+.sim-data.json
+.cli-page.html
