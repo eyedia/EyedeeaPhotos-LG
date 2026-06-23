@@ -21,6 +21,34 @@ async function parseJsonResponse(response) {
   }
 }
 
+function persistRefreshedAuth(refreshed) {
+  const state = useAuthStore.getState();
+  state.persistAuth({
+    user: refreshed.user || state.user,
+    token: refreshed.token,
+    refreshToken: refreshed.refresh_token || state.refreshToken,
+    group: refreshed.group || state.group,
+    entitlements: refreshed.entitlements ?? state.entitlements,
+  });
+}
+
+async function tryRefreshAndRetry(path, options) {
+  const refreshToken = useAuthStore.getState().refreshToken;
+  if (!refreshToken) {
+    useAuthStore.getState().logout();
+    return null;
+  }
+
+  try {
+    const refreshed = await authApi.refresh(refreshToken);
+    persistRefreshedAuth(refreshed);
+    return request(path, { ...options, retryOn401: false });
+  } catch {
+    useAuthStore.getState().logout();
+    return null;
+  }
+}
+
 async function request(path, options = {}) {
   const { method = 'GET', body, auth = false, retryOn401 = true } = options;
   const headers = {
@@ -45,21 +73,8 @@ async function request(path, options = {}) {
   const data = await parseJsonResponse(response);
 
   if (response.status === 401 && auth && retryOn401) {
-    const refreshToken = useAuthStore.getState().refreshToken;
-    if (refreshToken) {
-      try {
-        const refreshed = await authApi.refresh(refreshToken);
-        useAuthStore.getState().persistAuth({
-          user: refreshed.user || useAuthStore.getState().user,
-          token: refreshed.token,
-          refreshToken: refreshed.refresh_token,
-          group: refreshed.group || useAuthStore.getState().group,
-        });
-        return request(path, { ...options, retryOn401: false });
-      } catch {
-        useAuthStore.getState().logout();
-      }
-    }
+    const retried = await tryRefreshAndRetry(path, options);
+    if (retried !== null) return retried;
   }
 
   if (!response.ok) {
@@ -71,6 +86,55 @@ async function request(path, options = {}) {
   }
 
   return data;
+}
+
+async function fetchWithAuth(url, { retryOn401 = true } = {}) {
+  const token = getStoredAuthToken();
+  const headers = {
+    'User-Agent': APP_USER_AGENT,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
+  const response = await fetch(url, { headers });
+
+  if (response.status === 401 && retryOn401) {
+    const refreshToken = useAuthStore.getState().refreshToken;
+    if (refreshToken) {
+      try {
+        const refreshed = await authApi.refresh(refreshToken);
+        persistRefreshedAuth(refreshed);
+        return fetchWithAuth(url, { retryOn401: false });
+      } catch {
+        useAuthStore.getState().logout();
+        throw new ApiError('Unauthorized', { status: 401 });
+      }
+    }
+    useAuthStore.getState().logout();
+    throw new ApiError('Unauthorized', { status: 401 });
+  }
+
+  return response;
+}
+
+export async function fetchAuthenticatedBlob(url) {
+  let lastError = null;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await fetchWithAuth(url);
+      if (response.ok) {
+        return response.blob();
+      }
+      lastError = new ApiError(`Image fetch failed (${response.status})`, { status: response.status });
+      if (response.status === 401) break;
+    } catch (error) {
+      lastError = error;
+      if (error?.status === 401) break;
+    }
+    if (attempt < 2) await new Promise((r) => setTimeout(r, 1000));
+  }
+
+  throw lastError || new ApiError('Image fetch failed');
 }
 
 export const authApi = {
@@ -124,6 +188,10 @@ export const viewApi = {
       auth: true,
       body: { scope },
     }),
+};
+
+export const weatherApi = {
+  getCurrent: () => request('/weather/current', { auth: true }),
 };
 
 export { ApiError };

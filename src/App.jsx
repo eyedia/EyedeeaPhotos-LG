@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuthStore } from './stores/authStore';
 import DeviceCodeScreen from './screens/DeviceCodeScreen';
 import ViewScreen from './screens/ViewScreen';
@@ -17,6 +17,7 @@ export default function App() {
   const hydrateSession = useAuthStore((state) => state.hydrateSession);
 
   const [screen, setScreen] = useState(SCREENS.deviceCode);
+  const viewBackHandlerRef = useRef(null);
 
   useEffect(() => {
     hydrateSession().then((valid) => {
@@ -38,6 +39,9 @@ export default function App() {
 
   useWebOSBackKey(
     useCallback(() => {
+      if (screen === SCREENS.view && viewBackHandlerRef.current?.()) {
+        return true;
+      }
       if (screen === SCREENS.settings) {
         setScreen(SCREENS.view);
         return true;
@@ -76,6 +80,7 @@ export default function App() {
     <ViewScreen
       onOpenSettings={goToSettings}
       onSessionExpired={goToDeviceCode}
+      onBackHandlerRef={viewBackHandlerRef}
     />
   );
 }

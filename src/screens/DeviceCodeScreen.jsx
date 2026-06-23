@@ -91,6 +91,7 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
           token: data.token,
           refreshToken: data.refresh_token,
           group: data.group,
+          entitlements: data.entitlements,
         });
         onAuthenticated();
         return;

@@ -7,5 +7,6 @@ export const STORAGE_KEYS = {
   token: 'auth_token',
   refreshToken: 'refresh_token',
   user: 'auth_user',
+  entitlements: 'auth_entitlements',
   group: 'auth_group',
 };
