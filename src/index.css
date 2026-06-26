@@ -330,12 +330,11 @@ button {
   left: 0;
   right: 0;
   bottom: 0;
+  z-index: 40;
   padding: 2rem 2.5rem 2.5rem;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.35), transparent);
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
-  gap: 2rem;
   pointer-events: none;
 }
 
@@ -365,26 +364,45 @@ button {
   font-size: clamp(0.68rem, 1.2vw, 0.84rem);
 }
 
-.weather-panels {
+.weather-overlay {
+  position: absolute;
+  right: 2rem;
+  bottom: 2rem;
+  z-index: 70;
   display: flex;
   align-items: flex-end;
-  gap: 0.5rem;
-  flex-shrink: 0;
   pointer-events: auto;
 }
 
+.view-screen.panel-open .weather-overlay {
+  right: calc(320px + 2rem);
+}
+
+.weather-panels {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.375rem;
+  flex-shrink: 0;
+}
+
+.weather-panels-primary {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
 .weather-widget {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.75));
-  backdrop-filter: blur(8px);
-  border-radius: 12px;
-  padding: 0.65rem 0.85rem;
-  border: 1px solid rgba(148, 163, 184, 0.15);
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.3));
+  backdrop-filter: blur(4px);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  color: #fff;
 }
 
 .weather-widget-main {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.5rem;
 }
 
 .weather-icon {
@@ -392,79 +410,110 @@ button {
   line-height: 1;
 }
 
+.weather-main-text {
+  text-align: right;
+}
+
 .weather-temp {
   font-size: 1.25rem;
   font-weight: 600;
   color: #cbd5e1;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
 }
 
 .weather-condition {
   font-size: 0.75rem;
   color: #94a3b8;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
 }
 
 .weather-location {
   font-size: 0.7rem;
   color: #64748b;
   white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .weather-widget-details {
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.5rem;
 }
 
 .weather-detail {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
+  text-align: center;
+}
+
+.weather-detail-icon {
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.weather-detail-value {
   font-size: 0.8rem;
   font-weight: 600;
   color: #94a3b8;
 }
 
+.weather-detail-label {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
 .weather-widget-forecast {
   display: flex;
   gap: 0.5rem;
+  align-items: stretch;
+  min-height: 4.25rem;
 }
 
 .forecast-day {
   text-align: center;
   font-size: 0.7rem;
   color: #94a3b8;
+  min-width: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  line-height: 1;
 }
 
 .forecast-day-name {
-  font-weight: 600;
-  margin-bottom: 0.15rem;
+  font-size: 0.625rem;
+  color: #64748b;
 }
 
 .forecast-icon {
-  font-size: 1.1rem;
+  font-size: 0.875rem;
 }
 
 .forecast-temps {
+  font-size: 0.625rem;
   font-weight: 600;
+  color: #cbd5e1;
+}
+
+.forecast-temps-low {
+  font-size: 0.625rem;
+  color: #64748b;
 }
 
 .forecast-pop {
-  color: #7dd3fc;
-  font-size: 0.65rem;
+  color: #60a5fa;
+  font-size: 0.625rem;
 }
 
 .weather-alert {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.25rem;
   background: rgba(245, 158, 11, 0.8);
   backdrop-filter: blur(4px);
   border-radius: 8px;
-  padding: 0.4rem 0.6rem;
+  padding: 0.375rem 0.5rem;
   color: #fff;
   font-size: 0.75rem;
   font-weight: 600;
-  max-width: 140px;
+  max-width: 7.5rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -519,18 +568,19 @@ button {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 56px;
-  height: 80px;
+  padding: 0.75rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 50%;
   background: rgba(0, 0, 0, 0.5);
   color: #f8fafc;
-  font-size: 1.5rem;
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease, background 0.15s ease;
   z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .view-nav-btn.visible,
@@ -541,7 +591,9 @@ button {
 }
 
 .view-nav-btn:disabled {
-  opacity: 0.25;
+  background: rgba(0, 0, 0, 0.25);
+  color: rgba(255, 255, 255, 0.4);
+  cursor: not-allowed;
   pointer-events: none;
 }
 

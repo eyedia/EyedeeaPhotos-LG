@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, Menu, Settings } from 'lucide-react';
 import { fetchAuthenticatedBlob, viewApi } from '../services/api';
 import { clearWeatherCache, getCurrentWeather } from '../services/weatherService';
 import { useAuthStore } from '../stores/authStore';
@@ -18,8 +19,18 @@ const WEATHER_REFRESH_MS = 30 * 60 * 1000;
 const HISTORY_DISPLAY_COUNT = 15;
 const DEFAULT_REFRESH_CLIENT_SECONDS = 30;
 
+function PhotoMetadataCaptions({ photoData }) {
+  return (
+    <div className="photo-metadata-captions">
+      <h2>{getTitle(photoData)}</h2>
+      <p>{getSubtitle(photoData)}</p>
+      <p className="muted">{getSubSubtitle(photoData)}</p>
+    </div>
+  );
+}
+
 function WeatherPanels({ weather, config, compact }) {
-  if (!weather?.condition) return null;
+  if (!weather) return null;
 
   const showAdvanced = config?.advanced_weather && Array.isArray(weather.forecast) && weather.forecast.length > 0;
 
@@ -28,44 +39,54 @@ function WeatherPanels({ weather, config, compact }) {
       className="weather-panels"
       style={compact ? { transform: 'scale(0.72)', transformOrigin: 'bottom right' } : undefined}
     >
-      <div className="weather-widget weather-widget-main">
-        <div className="weather-icon">{weather.icon || '☀️'}</div>
-        <div className="weather-main-text">
-          <div className="weather-temp">{weather.temp ?? 24}°</div>
-          <div className="weather-condition">{weather.condition || 'Sunny'}</div>
-          <div className="weather-location">{weather.location || ''}</div>
-        </div>
-      </div>
+      <div className="weather-panels-primary">
+        {weather.condition && (
+          <div className="weather-widget weather-widget-main">
+            <div className="weather-icon">{weather.icon || '☀️'}</div>
+            <div className="weather-main-text">
+              <div className="weather-temp">{weather.temp ?? 24}°</div>
+              <div className="weather-condition">{weather.condition || 'Sunny'}</div>
+              <div className="weather-location">{weather.location || ''}</div>
+            </div>
+          </div>
+        )}
 
-      {(weather.humidity !== undefined || weather.wind_speed !== undefined) && (
-        <div className="weather-widget weather-widget-details">
-          {weather.humidity !== undefined && (
-            <div className="weather-detail">
-              <span aria-hidden="true">💧</span>
-              <span>{weather.humidity}%</span>
-            </div>
-          )}
-          {weather.wind_speed !== undefined && (
-            <div className="weather-detail">
-              <span aria-hidden="true">💨</span>
-              <span>{weather.wind_speed}</span>
-            </div>
-          )}
-        </div>
-      )}
+        {(weather.humidity !== undefined || weather.wind_speed !== undefined) && (
+          <div className="weather-widget weather-widget-details">
+            {weather.humidity !== undefined && (
+              <div className="weather-detail">
+                <div className="weather-detail-icon" aria-hidden="true">💧</div>
+                <div className="weather-detail-value">{weather.humidity}%</div>
+                <div className="weather-detail-label">Humidity</div>
+              </div>
+            )}
+            {weather.wind_speed !== undefined && (
+              <div className="weather-detail">
+                <div className="weather-detail-icon" aria-hidden="true">💨</div>
+                <div className="weather-detail-value">{weather.wind_speed}</div>
+                <div className="weather-detail-label">mph</div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {showAdvanced && (
         <div className="weather-widget weather-widget-forecast">
-          {weather.forecast.slice(0, 3).map((day) => (
-            <div key={day.date || day.day} className="forecast-day">
-              <div className="forecast-day-name">{day.day || day.date}</div>
-              <div className="forecast-icon">{day.icon || '☀️'}</div>
-              <div className="forecast-temps">
-                {day.high}° / {day.low}°
+          {weather.forecast.slice(0, 3).map((day) => {
+            const label = day.dt
+              ? new Date(day.dt * 1000).toLocaleDateString(undefined, { weekday: 'short' })
+              : (day.day || day.date);
+            return (
+              <div key={day.dt || day.date || day.day} className="forecast-day">
+                <div className="forecast-day-name">{label}</div>
+                <div className="forecast-icon">{day.icon || '☀️'}</div>
+                <div className="forecast-temps">{day.high}°</div>
+                <div className="forecast-temps-low">{day.low}°</div>
+                {day.pop !== undefined && <div className="forecast-pop">{day.pop}%</div>}
               </div>
-              {day.pop !== undefined && <div className="forecast-pop">{day.pop}%</div>}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -612,6 +633,11 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
                   className="photo-main portrait"
                 />
               </div>
+              {showMetadata && (
+                <div className="photo-metadata">
+                  <PhotoMetadataCaptions photoData={photoData} />
+                </div>
+              )}
             </div>
           ) : (
             <img
@@ -628,16 +654,15 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
           </div>
         )}
 
-        {showMetadata && (
+        {showMetadata && !isPortrait(photoData) && currentPhotoBlobUrl && (
           <div className="photo-metadata">
-            <div className="photo-metadata-captions">
-              <h2>{getTitle(photoData)}</h2>
-              <p>{getSubtitle(photoData)}</p>
-              <p className="muted">{getSubSubtitle(photoData)}</p>
-            </div>
-            {showWeatherPanel && (
-              <WeatherPanels weather={weather} config={config} compact={compactWeather} />
-            )}
+            <PhotoMetadataCaptions photoData={photoData} />
+          </div>
+        )}
+
+        {showWeatherPanel && (
+          <div className="weather-overlay">
+            <WeatherPanels weather={weather} config={config} compact={compactWeather} />
           </div>
         )}
       </div>
@@ -647,10 +672,10 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
           type="button"
           className="view-icon-btn"
           onClick={onOpenSettings}
-          aria-label="Home"
+          aria-label="Settings"
           title="Settings"
         >
-          ⌂
+          <Settings size={24} />
         </button>
         <button
           type="button"
@@ -659,7 +684,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
           aria-label="Toggle history panel"
           title="History"
         >
-          ☰
+          <Menu size={24} />
         </button>
       </div>
 
@@ -670,7 +695,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
         disabled={!canGoPrev}
         aria-label="Previous photo"
       >
-        ◀
+        <ChevronLeft size={32} />
       </button>
       <button
         type="button"
@@ -679,7 +704,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
         disabled={!canGoNext}
         aria-label="Next photo"
       >
-        ▶
+        <ChevronRight size={32} />
       </button>
 
       <aside className={`history-panel ${isPanelOpen ? 'open' : ''}`} aria-hidden={!isPanelOpen}>

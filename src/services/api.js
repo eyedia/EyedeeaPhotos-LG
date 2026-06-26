@@ -191,7 +191,13 @@ export const viewApi = {
 };
 
 export const weatherApi = {
-  getCurrent: () => request('/weather/current', { auth: true }),
+  getCurrent: (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.lat != null) query.set('lat', String(params.lat));
+    if (params.lon != null) query.set('lon', String(params.lon));
+    const qs = query.toString();
+    return request(`/weather/current${qs ? `?${qs}` : ''}`, { auth: true });
+  },
 };
 
 export { ApiError };

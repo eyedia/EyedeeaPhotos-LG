@@ -3,7 +3,6 @@ import { weatherApi } from './api';
 const CACHE_DURATION = 30 * 60 * 1000;
 const STALE_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
 const WEATHER_CACHE_STORAGE_KEY = 'weather_cache_v1';
-const CACHE_KEY = 'ip-fallback';
 
 const weatherCacheRef = {
   data: null,
@@ -54,15 +53,42 @@ function getCachedWeatherByKey(cacheKey) {
   return null;
 }
 
+function getBrowserCoords() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve(null);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+      () => resolve(null),
+      { timeout: 5000, maximumAge: 60000 }
+    );
+  });
+}
+
+function getCacheKey(coords) {
+  return coords ? `coords:${coords.lat.toFixed(3)},${coords.lon.toFixed(3)}` : 'ip-fallback';
+}
+
 export async function getCurrentWeather() {
   try {
-    const cached = getCachedWeatherByKey(CACHE_KEY);
+    const coords = await getBrowserCoords();
+    const params = coords ? { lat: coords.lat, lon: coords.lon } : {};
+    const cacheKey = getCacheKey(coords);
+
+    const cached = getCachedWeatherByKey(cacheKey);
     if (cached && cached.age < CACHE_DURATION) {
       return cached.data;
     }
 
     const staleFallback = cached && cached.age < STALE_CACHE_MAX_AGE ? cached.data : null;
-    const data = await weatherApi.getCurrent();
+
+    let data = await weatherApi.getCurrent(params);
+
+    if (data?.error && coords) {
+      data = await weatherApi.getCurrent({});
+    }
 
     if (data?.error) {
       return staleFallback;
@@ -74,12 +100,14 @@ export async function getCurrentWeather() {
 
     weatherCacheRef.data = data;
     weatherCacheRef.timestamp = Date.now();
-    weatherCacheRef.key = CACHE_KEY;
-    writePersistedWeatherCache(data, weatherCacheRef.timestamp, CACHE_KEY);
+    weatherCacheRef.key = cacheKey;
+    writePersistedWeatherCache(data, weatherCacheRef.timestamp, cacheKey);
 
     return data;
   } catch {
-    const cached = getCachedWeatherByKey(CACHE_KEY);
+    const coords = await getBrowserCoords().catch(() => null);
+    const cacheKey = getCacheKey(coords);
+    const cached = getCachedWeatherByKey(cacheKey);
     if (cached && cached.age < STALE_CACHE_MAX_AGE) {
       return cached.data;
     }
