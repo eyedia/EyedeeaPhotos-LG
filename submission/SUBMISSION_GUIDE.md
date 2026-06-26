@@ -8,18 +8,10 @@ Use this guide when submitting **Eyedeea Photos** from [LG Seller Lounge](https:
 
 ```powershell
 cd D:\Work\EyedeeaPhotos-LG
-npm run package:webos:sign
+npm run package:webos
 ```
 
-Or with an explicit certificate path:
-
-```powershell
-powershell -File scripts/build-ipk.ps1 -Sign -CertPath D:\certs\lg-developer.pem
-```
-
-Certificate resolution order: `-CertPath` → `LG_WEBOS_TV_CERT` env var → `certs/developer.pem`.
-
-Upload the **signed** `.ipk` from `dist-package/` (1920×1080 resolution).
+Upload the `.ipk` from `dist-package/` (1920×1080 resolution). **No Seller Lounge developer certificate is required** — LG signs during QA review.
 
 Optional: build a second package at 1280×720 for older webOS models by changing `resolution` in `appinfo.json` before packaging.
 

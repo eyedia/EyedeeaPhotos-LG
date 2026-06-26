@@ -4,6 +4,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
+. "$PSScriptRoot\webos-env.ps1"
 
 function Get-SimVersion {
   param([string]$Override)

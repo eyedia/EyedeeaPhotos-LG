@@ -4,6 +4,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
+. "$PSScriptRoot\webos-env.ps1"
 
 function Resolve-OfficialWebOSTVJs {
   $sdkHome = $env:LG_WEBOS_TV_SDK_HOME
@@ -35,6 +36,7 @@ try {
 
   Write-Host "Generating icons..."
   npm run icons
+  npm run submission-assets
 
   Write-Host "Building web app..."
   npm run build
@@ -48,6 +50,9 @@ try {
   Copy-Item -Force (Join-Path $Root "appinfo.json") (Join-Path $Stage "appinfo.json")
   Copy-Item -Force (Join-Path $Root "public\icon.png") (Join-Path $Stage "icon.png")
   Copy-Item -Force (Join-Path $Root "public\largeIcon.png") (Join-Path $Stage "largeIcon.png")
+  if (Test-Path (Join-Path $Root "public\icon-400.png")) {
+    Copy-Item -Force (Join-Path $Root "public\icon-400.png") (Join-Path $Stage "icon-400.png")
+  }
   Copy-Item -Force (Join-Path $Root "public\logo.svg") (Join-Path $Stage "logo.svg")
 
   $webOsDir = Join-Path $Stage "webOSTVjs"

@@ -28,40 +28,73 @@ D:\LG\webOS_TV_SDK\
 4. Set environment variables (new terminal after `setx`):
 
 ```powershell
-setx LG_WEBOS_TV_SDK_HOME "D:\LG\webOS_TV_SDK"
-setx WEBOS_CLI_TV "%LG_WEBOS_TV_SDK_HOME%\CLI\bin"
+setx LG_WEBOS_TV_SDK_HOME "E:\Tools\webOS_TV_SDK"
 ```
 
-Add `%WEBOS_CLI_TV%` to your system **PATH**, then verify:
+Add the **literal path** to your user PATH (do not use `%WEBOS_CLI_TV%` — PowerShell does not expand `%VAR%` in PATH; CMD does):
+
+```
+E:\Tools\webOS_TV_SDK\CLI\bin
+```
+
+For **Cursor / VS Code terminals**, also add to the project `.env.local` (scripts read this automatically):
+
+```
+LG_WEBOS_TV_SDK_HOME=E:\Tools\webOS_TV_SDK
+```
+
+Restart Cursor after changing system PATH so integrated terminals pick up the update.
+
+Verify:
 
 ```powershell
 ares -V
 ares-package -V
-ares-sign -V
+npm run verify:env
 ```
 
-Run `npm run verify:env` from the project root.
+### Troubleshooting: `ares` works in CMD but not PowerShell
 
-## 3. Developer certificate (for store upload)
+| Cause | Fix |
+|-------|-----|
+| PATH contains `%WEBOS_CLI_TV%` literally | Replace with `E:\Tools\webOS_TV_SDK\CLI\bin` in System/User PATH |
+| Cursor opened before PATH change | Restart Cursor |
+| PowerShell session stale | Run `npm run verify:env` (project scripts prepend CLI\bin via `.env.local`) |
 
-LG Content Store requires a **signed** IPK.
+## 3. Certificates and keys (two different things)
 
-1. In Seller Lounge → **Development** → create or download your **developer certificate** (`.pem`)
-2. Store it locally (never commit). Recommended location:
+LG documentation often conflates these. **Seller Lounge does not offer a developer `.pem` download anymore** — that flow was replaced by webOS Studio’s Certificate Manager, which is only for **connecting your PC to a physical TV**.
 
-```
-EyedeeaPhotos-LG/certs/developer.pem   (gitignored)
-```
+### A. Device SSH key (test on your TV — not for store upload)
 
-3. Point the build at your certificate using one of:
+Used so `ares-install` / `ares-launch` can talk to your TV in Developer Mode.
+
+**Without webOS Studio (CLI only):**
+
+1. On the TV: install **Developer Mode** app → sign in with your LG account → turn on **Dev Mode** and **Key Server**
+2. On PC:
+   ```powershell
+   ares-setup-device
+   # add device: name=myTV, IP=<TV IP>, port=9922, user=prisoner, password blank
+   ares-novacom --device myTV --getkey
+   ```
+3. Enter the **6-character passphrase** shown on the TV screen
+
+**With webOS Studio (VS Code extension):** Command Palette → **webOS TV: Set Up SSH Key** — same passphrase from the TV. This is what “Certificate Manager” in webOS Studio refers to.
+
+The key is stored in your CLI/webOS Studio profile — you do **not** copy a `.pem` into this repo.
+
+### B. Content Store IPK (what you upload to Seller Lounge)
+
+**You do not need a Seller Lounge developer certificate.** Package with:
 
 ```powershell
-# Option A — environment variable
-setx LG_WEBOS_TV_CERT "D:\certs\lg-developer.pem"
-
-# Option B — script parameter
-powershell -File scripts/build-ipk.ps1 -Sign -CertPath D:\certs\lg-developer.pem
+npm run package:webos
 ```
+
+Upload the `.ipk` from `dist-package/` to [Seller Lounge](https://seller.lgappstv.com). LG handles signing/QA on their side during review.
+
+Optional `-Sign` in `build-ipk.ps1` only applies if you have legacy `.pem`/`.crt` files from an old SDK workflow — not required for normal submission.
 
 ## 4. Physical LG TV (Developer Mode)
 
@@ -99,7 +132,7 @@ Seller Lounge Service Info requires a privacy policy URL. Use your production Ey
 | Verify tooling | `npm run verify:env` |
 | Branded icons | `npm run icons` |
 | Submission images | `npm run submission-assets` |
-| Unsigned IPK | `npm run package:webos` |
-| Signed IPK | `npm run package:webos:sign` or `build-ipk.ps1 -Sign` |
+| Unsigned IPK (store submit) | `npm run package:webos` |
+| Device SSH key | `ares-novacom --device myTV --getkey` (see section 3) |
 | Persistence QA | `docs/PERSISTENCE_CHECKLIST.md` |
 | Full submit guide | `submission/SUBMISSION_GUIDE.md` |

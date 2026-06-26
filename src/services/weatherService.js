@@ -53,7 +53,40 @@ function getCachedWeatherByKey(cacheKey) {
   return null;
 }
 
+function getAnyStaleWeatherCache() {
+  if (weatherCacheRef.data && weatherCacheRef.timestamp) {
+    const age = Date.now() - weatherCacheRef.timestamp;
+    if (age < STALE_CACHE_MAX_AGE) {
+      return weatherCacheRef.data;
+    }
+  }
+
+  const persisted = readPersistedWeatherCache();
+  if (persisted?.data && persisted.timestamp) {
+    const age = Date.now() - persisted.timestamp;
+    if (age < STALE_CACHE_MAX_AGE) {
+      weatherCacheRef.data = persisted.data;
+      weatherCacheRef.timestamp = persisted.timestamp;
+      weatherCacheRef.key = persisted.key;
+      return persisted.data;
+    }
+  }
+
+  return null;
+}
+
+function shouldSkipBrowserGeolocation() {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  return Boolean(window.webOS?.platform?.tv);
+}
+
 function getBrowserCoords() {
+  if (shouldSkipBrowserGeolocation()) {
+    return Promise.resolve(null);
+  }
+
   return new Promise((resolve) => {
     if (!navigator.geolocation) {
       resolve(null);
@@ -71,6 +104,14 @@ function getCacheKey(coords) {
   return coords ? `coords:${coords.lat.toFixed(3)},${coords.lon.toFixed(3)}` : 'ip-fallback';
 }
 
+function isValidWeatherPayload(data) {
+  return data
+    && data.temp !== undefined
+    && data.temp !== null
+    && data.condition
+    && data.icon;
+}
+
 export async function getCurrentWeather() {
   try {
     const coords = await getBrowserCoords();
@@ -82,7 +123,9 @@ export async function getCurrentWeather() {
       return cached.data;
     }
 
-    const staleFallback = cached && cached.age < STALE_CACHE_MAX_AGE ? cached.data : null;
+    const staleFallback = cached && cached.age < STALE_CACHE_MAX_AGE
+      ? cached.data
+      : getAnyStaleWeatherCache();
 
     let data = await weatherApi.getCurrent(params);
 
@@ -94,7 +137,7 @@ export async function getCurrentWeather() {
       return staleFallback;
     }
 
-    if (data.temp === undefined || data.temp === null || !data.condition || !data.icon) {
+    if (!isValidWeatherPayload(data)) {
       return staleFallback;
     }
 
@@ -105,13 +148,7 @@ export async function getCurrentWeather() {
 
     return data;
   } catch {
-    const coords = await getBrowserCoords().catch(() => null);
-    const cacheKey = getCacheKey(coords);
-    const cached = getCachedWeatherByKey(cacheKey);
-    if (cached && cached.age < STALE_CACHE_MAX_AGE) {
-      return cached.data;
-    }
-    return null;
+    return getAnyStaleWeatherCache();
   }
 }
 

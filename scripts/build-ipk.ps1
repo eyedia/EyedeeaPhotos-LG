@@ -7,8 +7,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
+. "$PSScriptRoot\webos-env.ps1"
 
-function Resolve-CertPath {
+function Resolve-PrivateKeyPath {
   param([string]$ExplicitPath)
 
   if ($ExplicitPath) {
@@ -19,9 +20,31 @@ function Resolve-CertPath {
     return $env:LG_WEBOS_TV_CERT
   }
 
-  $defaultCert = Join-Path $Root "certs\developer.pem"
-  if (Test-Path $defaultCert) {
-    return $defaultCert
+  $defaultKey = Join-Path $Root "certs\developer.pem"
+  if (Test-Path $defaultKey) {
+    return $defaultKey
+  }
+
+  return $null
+}
+
+function Resolve-CertificatePath {
+  param([string]$PrivateKeyPath)
+
+  if ($env:LG_WEBOS_TV_CERT_CRT) {
+    return $env:LG_WEBOS_TV_CERT_CRT
+  }
+
+  $defaultCrt = Join-Path $Root "certs\developer.crt"
+  if (Test-Path $defaultCrt) {
+    return $defaultCrt
+  }
+
+  if ($PrivateKeyPath) {
+    $siblingCrt = [System.IO.Path]::ChangeExtension($PrivateKeyPath, ".crt")
+    if (Test-Path $siblingCrt) {
+      return $siblingCrt
+    }
   }
 
   return $null
@@ -46,8 +69,40 @@ try {
   $PackageDir = Join-Path $Root $OutputDir
   New-Item -ItemType Directory -Force -Path $PackageDir | Out-Null
 
-  Write-Host "Packaging IPK..."
-  & ares-package -o $PackageDir $Stage
+  $shouldSign = $Sign -or $CertPath
+  $packageArgs = @("-o", $PackageDir)
+
+  if ($shouldSign) {
+    $privateKey = Resolve-PrivateKeyPath -ExplicitPath $CertPath
+    if (-not $privateKey -or -not (Test-Path $privateKey)) {
+      throw @"
+Private key not found for signing.
+  Pass -CertPath path\to\developer.pem
+  Or set LG_WEBOS_TV_CERT environment variable
+  Or place key at certs\developer.pem (gitignored)
+Download from LG Seller Lounge -> Development (see docs/LG_PREREQUISITES.md).
+"@
+    }
+
+    $certificate = Resolve-CertificatePath -PrivateKeyPath $privateKey
+    if (-not $certificate -or -not (Test-Path $certificate)) {
+      throw @"
+Certificate (.crt) not found for signing.
+  Place developer.crt next to developer.pem in certs\
+  Or set LG_WEBOS_TV_CERT_CRT environment variable
+Both files come from LG Seller Lounge -> Development.
+"@
+    }
+
+    Write-Host "Packaging signed IPK..."
+    Write-Host "  Private key: $privateKey"
+    Write-Host "  Certificate: $certificate"
+    $packageArgs += @("-s", $privateKey, "-crt", $certificate)
+  } else {
+    Write-Host "Packaging IPK..."
+  }
+
+  & ares-package @packageArgs $Stage
 
   $ipk = Get-ChildItem -Path $PackageDir -Filter "*.ipk" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
   if (-not $ipk) {
@@ -56,32 +111,11 @@ try {
 
   Write-Host "Created package: $($ipk.FullName)"
 
-  $shouldSign = $Sign -or $CertPath
-  if ($shouldSign) {
-    $aresSign = Get-Command ares-sign -ErrorAction SilentlyContinue
-    if (-not $aresSign) {
-      throw "ares-sign not found. Install webOS TV CLI (see docs/LG_PREREQUISITES.md)."
-    }
-
-    $cert = Resolve-CertPath -ExplicitPath $CertPath
-    if (-not $cert -or -not (Test-Path $cert)) {
-      throw @"
-Certificate not found for signing.
-  Pass -CertPath path\to\developer.pem
-  Or set LG_WEBOS_TV_CERT environment variable
-  Or place cert at certs\developer.pem (gitignored)
-See docs/LG_PREREQUISITES.md for creating a certificate in Seller Lounge.
-"@
-    }
-
-    Write-Host "Signing IPK with certificate: $cert"
-    & ares-sign -c $cert $ipk.FullName
-    Write-Host "Signed package ready for LG Content Store upload: $($ipk.FullName)"
-  } else {
+  if (-not $shouldSign) {
     Write-Host ""
-    Write-Host "Note: IPK is unsigned. LG Content Store requires a signed IPK."
-    Write-Host "Re-run with -Sign after placing your developer certificate:"
-    Write-Host "  powershell -File scripts/build-ipk.ps1 -Sign -CertPath path\to\developer.pem"
+    Write-Host "IPK ready for LG Content Store upload (no separate signing certificate needed)."
+  } else {
+    Write-Host "Signed package ready for LG Content Store upload."
   }
 
   if ($DeviceName) {

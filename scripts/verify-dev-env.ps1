@@ -1,5 +1,6 @@
 $ErrorActionPreference = "Continue"
 $Root = Split-Path -Parent $PSScriptRoot
+. "$PSScriptRoot\webos-env.ps1"
 $ok = $true
 
 Write-Host "=== Eyedeea Photos dev environment ==="
@@ -52,7 +53,7 @@ if ($ares) {
   $ok = $false
 }
 
-foreach ($cmd in @("ares-package", "ares-sign", "ares-install", "ares-launch")) {
+foreach ($cmd in @("ares-package", "ares-install", "ares-launch")) {
   $found = Get-Command $cmd -ErrorAction SilentlyContinue
   if ($found) {
     Write-Host "[OK]   $cmd available"
@@ -78,13 +79,19 @@ if ($sdkHome -and (Test-Path $sdkHome)) {
 }
 
 $cert = $env:LG_WEBOS_TV_CERT
-$defaultCert = Join-Path $Root "certs\developer.pem"
+$defaultKey = Join-Path $Root "certs\developer.pem"
+$defaultCrt = Join-Path $Root "certs\developer.crt"
 if ($cert -and (Test-Path $cert)) {
-  Write-Host "[OK]   LG_WEBOS_TV_CERT configured"
-} elseif (Test-Path $defaultCert) {
-  Write-Host "[OK]   certs/developer.pem present (for npm run package:webos:sign)"
+  Write-Host "[OK]   LG_WEBOS_TV_CERT configured (private key)"
+} elseif (Test-Path $defaultKey) {
+  Write-Host "[OK]   certs/developer.pem present"
 } else {
-  Write-Host "[INFO] No developer certificate found - create in Seller Lounge before signed build"
+  Write-Host "[INFO] No developer private key found - download from Seller Lounge before signed build"
+}
+if ((Test-Path $defaultCrt) -or $env:LG_WEBOS_TV_CERT_CRT) {
+  Write-Host "[OK]   developer.crt configured for signed packaging"
+} elseif ($cert -or (Test-Path $defaultKey)) {
+  Write-Host "[WARN] developer.crt missing - signed build needs both .pem and .crt"
 }
 
 $simVersion = Get-SimVersionFromEnvFiles

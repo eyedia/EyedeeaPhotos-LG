@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Menu, Settings } from 'lucide-react';
 import { fetchAuthenticatedBlob, viewApi } from '../services/api';
-import { clearWeatherCache, getCurrentWeather } from '../services/weatherService';
+import { getCurrentWeather } from '../services/weatherService';
 import { useAuthStore } from '../stores/authStore';
 import { addSizeParam, getOptimalVariantSize } from '../utils/variantHelper';
 import {
@@ -400,18 +400,23 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
 
   useEffect(() => {
     const weatherTimer = setInterval(() => {
-      clearWeatherCache();
       loadWeather();
     }, WEATHER_REFRESH_MS);
     return () => clearInterval(weatherTimer);
   }, [loadWeather]);
 
   useEffect(() => {
+    const isWebOsTv = () => typeof window !== 'undefined' && Boolean(window.webOS?.platform?.tv);
+
     const evaluateWeatherVisibility = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
-      const isLandscape = width >= height;
-      setShowWeatherPanel(width >= 768 || (width <= 760 && isLandscape));
+      if (isWebOsTv()) {
+        setShowWeatherPanel(true);
+      } else {
+        const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+        setShowWeatherPanel(width >= 768 || isLandscape);
+      }
       setCompactWeather(width <= 1366 && height <= 700);
     };
 

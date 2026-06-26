@@ -7,7 +7,7 @@ Final submission checklist for [LG Seller Lounge](https://seller.lgappstv.com). 
 - [ ] Signed IPK built: `npm run package:webos:sign` (or `build-ipk.ps1 -Sign`)
 - [ ] IPK path: `dist-package/com.eyediatech.eyedeeaphotos_1.0.0_all.ipk`
 - [ ] Real TV screenshots in `submission/screenshots/` (5 files)
-- [ ] Branded assets: `icon-400.png`, `launcher-1920x1080.png`, `splash-1920x1080.png`
+- [ ] Branded assets: `icon-400.jpg` (preferred) or `icon-400.png`, launcher, splash
 - [ ] Completed `self-checklist.xlsx` from Seller Lounge template
 - [ ] Completed `ux-scenario.pptx` from Seller Lounge template
 - [ ] QA test account credentials filled in `TESTER_NOTES.txt`
@@ -26,9 +26,16 @@ Upload the **signed** `.ipk` from `dist-package/`.
 
 ### Step 2 — Images
 
+**Important — App Icon error fix:** If you chose **Yes** to import `appinfo.json`, Seller Lounge auto-fills the **80×80** `icon.png` from the IPK. That triggers *"Upload 400 x 400 pixels and greater icons only."*
+
+1. Go to **Images** → **App Icon**
+2. **Remove/clear** the auto-imported small icon
+3. Upload **`submission/icon-400.jpg`** (recommended — no transparency) or `submission/icon-400.png`
+4. Set **App Tile Color** to `#000000` (must match icon background)
+
 | Asset | File |
 |-------|------|
-| App icon (400×400) | `submission/icon-400.png` |
+| App icon (400×400, no transparency) | `submission/icon-400.jpg` |
 | Launcher background (1920×1080) | `submission/launcher-1920x1080.png` |
 | Splash screen (1920×1080) | `submission/splash-1920x1080.png` |
 | Screenshot 1 | `submission/screenshots/01-device-code.png` |
