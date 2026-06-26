@@ -5,6 +5,27 @@ param(
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 
+function Resolve-OfficialWebOSTVJs {
+  $sdkHome = $env:LG_WEBOS_TV_SDK_HOME
+  if (-not $sdkHome) {
+    return $null
+  }
+
+  $candidates = @(
+    (Join-Path $sdkHome "APIs\webOSTV.js\webOSTV.js"),
+    (Join-Path $sdkHome "SDK\APIs\webOSTV.js\webOSTV.js"),
+    (Join-Path $sdkHome "webOSTVjs\webOSTV.js")
+  )
+
+  foreach ($path in $candidates) {
+    if (Test-Path $path) {
+      return $path
+    }
+  }
+
+  return $null
+}
+
 Push-Location $Root
 try {
   if (-not $SkipInstall) {
@@ -29,9 +50,17 @@ try {
   Copy-Item -Force (Join-Path $Root "public\largeIcon.png") (Join-Path $Stage "largeIcon.png")
   Copy-Item -Force (Join-Path $Root "public\logo.svg") (Join-Path $Stage "logo.svg")
 
-  if (-not (Test-Path (Join-Path $Stage "webOSTVjs\webOSTV.js"))) {
-    New-Item -ItemType Directory -Force -Path (Join-Path $Stage "webOSTVjs") | Out-Null
-    Copy-Item -Force (Join-Path $Root "public\webOSTVjs\webOSTV.js") (Join-Path $Stage "webOSTVjs\webOSTV.js")
+  $webOsDir = Join-Path $Stage "webOSTVjs"
+  New-Item -ItemType Directory -Force -Path $webOsDir | Out-Null
+
+  $officialJs = Resolve-OfficialWebOSTVJs
+  if ($officialJs) {
+    Write-Host "Using official webOSTV.js from SDK: $officialJs"
+    Copy-Item -Force $officialJs (Join-Path $webOsDir "webOSTV.js")
+  } else {
+    Write-Warning "LG_WEBOS_TV_SDK_HOME not set or webOSTV.js not found - using bundled stub."
+    Write-Warning "Set LG_WEBOS_TV_SDK_HOME for production builds (see docs/LG_PREREQUISITES.md)."
+    Copy-Item -Force (Join-Path $Root "public\webOSTVjs\webOSTV.js") (Join-Path $webOsDir "webOSTV.js")
   }
 
   Write-Host "Staged webOS app at dist/"

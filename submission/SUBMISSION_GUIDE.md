@@ -2,14 +2,24 @@
 
 Use this guide when submitting **Eyedeea Photos** from [LG Seller Lounge](https://seller.lgappstv.com).
 
+**Related docs:** [LG prerequisites](../docs/LG_PREREQUISITES.md) · [Persistence QA](../docs/PERSISTENCE_CHECKLIST.md) · [Physical QA](./QA_CHECKLIST.md) · [Upload steps](./SELLER_LOUNGE_UPLOAD.md)
+
 ## 1. Build the binary
 
 ```powershell
 cd D:\Work\EyedeeaPhotos-LG
-npm run package:webos
+npm run package:webos:sign
 ```
 
-Upload the `.ipk` from `dist-package/` (1920×1080 resolution).
+Or with an explicit certificate path:
+
+```powershell
+powershell -File scripts/build-ipk.ps1 -Sign -CertPath D:\certs\lg-developer.pem
+```
+
+Certificate resolution order: `-CertPath` → `LG_WEBOS_TV_CERT` env var → `certs/developer.pem`.
+
+Upload the **signed** `.ipk` from `dist-package/` (1920×1080 resolution).
 
 Optional: build a second package at 1280×720 for older webOS models by changing `resolution` in `appinfo.json` before packaging.
 
@@ -17,13 +27,18 @@ Optional: build a second package at 1280×720 for older webOS models by changing
 
 | Asset | Size | Notes |
 |-------|------|-------|
-| App icon | 400×400 PNG | Square, flat background — export from `public/logo.svg` |
+| App icon | 400×400 PNG | `npm run submission-assets` — branded from `public/logo.svg` |
 | Launcher background | 1920×1080 JPG/PNG | Brand image shown when app tile is focused |
 | Splash screen | 1920×1080 JPG/PNG | Shown while app launches |
 | Primary screenshot | 1280×720 or 960×540 | Device code screen |
-| Secondary screenshots (2–5) | Same | Waiting, slideshow, settings, logout |
+| Secondary screenshots (4 more) | Same | Waiting, slideshow, settings, logout |
 
-Place working copies under `submission/screenshots/` before upload.
+Generate branded placeholders, then replace screenshots with real TV captures:
+
+```powershell
+npm run submission-assets
+# Capture from TV into submission/screenshots/01-device-code.png … 05-logout.png
+```
 
 ## 3. Self-checklist (Excel)
 

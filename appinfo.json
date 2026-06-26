@@ -13,5 +13,8 @@
   "iconColor": "#0ea5e9",
   "requiredMemory": 50,
   "supportTouchMode": "virtual",
-  "transparent": false
+  "transparent": false,
+  "accesses": [
+    "network.client"
+  ]
 }

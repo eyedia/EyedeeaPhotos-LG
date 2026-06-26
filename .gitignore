@@ -1,7 +1,9 @@
 node_modules/
 dist/
 dist-package/
+certs/
 *.ipk
+*.pem
 .DS_Store
 .env
 .env.local

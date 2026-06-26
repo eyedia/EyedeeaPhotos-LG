@@ -48,8 +48,43 @@ if ($ares) {
   $aresVer = & ares -V 2>&1 | Out-String
   Write-Host "[OK]   $($aresVer.Trim())"
 } else {
-  Write-Host "[FAIL] ares CLI not found - install webOS TV CLI (see TESTING.md)"
+  Write-Host "[FAIL] ares CLI not found - install webOS TV CLI (see docs/LG_PREREQUISITES.md)"
   $ok = $false
+}
+
+foreach ($cmd in @("ares-package", "ares-sign", "ares-install", "ares-launch")) {
+  $found = Get-Command $cmd -ErrorAction SilentlyContinue
+  if ($found) {
+    Write-Host "[OK]   $cmd available"
+  } else {
+    Write-Host "[WARN] $cmd not found - required for packaging/signing/TV install"
+  }
+}
+
+$sdkHome = $env:LG_WEBOS_TV_SDK_HOME
+if ($sdkHome -and (Test-Path $sdkHome)) {
+  Write-Host "[OK]   LG_WEBOS_TV_SDK_HOME = $sdkHome"
+  $sdkJs = @(
+    (Join-Path $sdkHome "APIs\webOSTV.js\webOSTV.js"),
+    (Join-Path $sdkHome "SDK\APIs\webOSTV.js\webOSTV.js")
+  ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+  if ($sdkJs) {
+    Write-Host "[OK]   Official webOSTV.js found in SDK"
+  } else {
+    Write-Host "[WARN] webOSTV.js not found under SDK - production builds will use stub"
+  }
+} else {
+  Write-Host "[WARN] LG_WEBOS_TV_SDK_HOME not set - see docs/LG_PREREQUISITES.md"
+}
+
+$cert = $env:LG_WEBOS_TV_CERT
+$defaultCert = Join-Path $Root "certs\developer.pem"
+if ($cert -and (Test-Path $cert)) {
+  Write-Host "[OK]   LG_WEBOS_TV_CERT configured"
+} elseif (Test-Path $defaultCert) {
+  Write-Host "[OK]   certs/developer.pem present (for npm run package:webos:sign)"
+} else {
+  Write-Host "[INFO] No developer certificate found - create in Seller Lounge before signed build"
 }
 
 $simVersion = Get-SimVersionFromEnvFiles
@@ -62,6 +97,13 @@ if (Test-Path $nodeModules) {
   Write-Host "[WARN] node_modules missing - run npm install"
 }
 
+$icon = Join-Path $Root "public\icon.png"
+if (Test-Path $icon) {
+  Write-Host "[OK]   public/icon.png exists"
+} else {
+  Write-Host "[WARN] public/icon.png missing - run npm run icons"
+}
+
 $dist = Join-Path $Root "dist"
 $appinfo = Join-Path $dist "appinfo.json"
 if (Test-Path $appinfo) {
@@ -70,16 +112,9 @@ if (Test-Path $appinfo) {
   Write-Host "[INFO] dist/ not staged yet - run npm run stage:webos"
 }
 
-$icon = Join-Path $Root "public\icon.png"
-if (Test-Path $icon) {
-  Write-Host "[OK]   public/icon.png exists"
-} else {
-  Write-Host "[WARN] public/icon.png missing - run npm run icons"
-}
-
 Write-Host ""
 if (-not $ok) {
-  Write-Host "Some checks failed. See TESTING.md for setup instructions."
+  Write-Host "Some checks failed. See docs/LG_PREREQUISITES.md for setup instructions."
   exit 1
 }
 

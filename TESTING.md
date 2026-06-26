@@ -128,21 +128,29 @@ If you prefer the simulator UI: **File → Launch App** and select the `dist/` f
 
 1. Enable Developer Mode on the LG TV
 2. Register the device: `ares-setup-device`
-3. Build, package, and optionally install:
+3. Build, sign, package, and optionally install:
 
 ```powershell
-npm run package:webos
+npm run package:webos:sign
 # Or install directly:
-powershell -File scripts/build-ipk.ps1 -DeviceName myTV
+powershell -File scripts/build-ipk.ps1 -Sign -DeviceName myTV
 ```
 
 Output `.ipk` is written to `dist-package/`.
+
+See [docs/LG_PREREQUISITES.md](docs/LG_PREREQUISITES.md) for certificate and Seller Lounge setup.
+
+---
+
+## Activation persistence
+
+After activation, auth is stored in `localStorage` and survives app restarts. Run the checklist in [docs/PERSISTENCE_CHECKLIST.md](docs/PERSISTENCE_CHECKLIST.md) on a physical TV before submit.
 
 ---
 
 ## Full QA script
 
-See [`submission/TESTER_NOTES.txt`](submission/TESTER_NOTES.txt) for the end-to-end activation, slideshow, settings, and logout checklist used for LG submission.
+See [`submission/QA_CHECKLIST.md`](submission/QA_CHECKLIST.md) and [`submission/TESTER_NOTES.txt`](submission/TESTER_NOTES.txt) for the end-to-end activation, slideshow, settings, and logout checklist used for LG submission.
 
 ## npm scripts reference
 
@@ -153,4 +161,5 @@ See [`submission/TESTER_NOTES.txt`](submission/TESTER_NOTES.txt) for the end-to-
 | `npm run stage:webos` | Build + copy webOS metadata into `dist/` |
 | `npm run sim` | Stage + launch on simulator |
 | `npm run sim:inspect` | Open simulator inspector |
-| `npm run package:webos` | Stage + create `.ipk` in `dist-package/` |
+| `npm run package:webos` | Stage + create unsigned `.ipk` in `dist-package/` |
+| `npm run package:webos:sign` | Stage + package + sign IPK for Content Store |

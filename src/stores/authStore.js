@@ -33,6 +33,42 @@ const isTokenExpired = (token) => {
 
 const isAuthFailure = (error) => error?.status === 401 || error?.status === 403;
 
+const PROACTIVE_REFRESH_LEAD_SEC = 300;
+const MIN_REFRESH_DELAY_MS = 60_000;
+
+let proactiveRefreshTimer = null;
+
+function clearProactiveRefresh() {
+  if (proactiveRefreshTimer != null) {
+    clearTimeout(proactiveRefreshTimer);
+    proactiveRefreshTimer = null;
+  }
+}
+
+function scheduleProactiveRefresh(get) {
+  clearProactiveRefresh();
+
+  const { token, refreshToken, isAuthenticated } = get();
+  if (!isAuthenticated || !token || !refreshToken) return;
+
+  const payload = parseJwtPayload(token);
+  if (!payload?.exp) return;
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  const refreshAtSec = payload.exp - PROACTIVE_REFRESH_LEAD_SEC;
+  const delayMs = Math.max((refreshAtSec - nowSec) * 1000, MIN_REFRESH_DELAY_MS);
+
+  proactiveRefreshTimer = setTimeout(async () => {
+    const state = get();
+    if (!state.isAuthenticated || !state.refreshToken) return;
+
+    const refreshed = await state.tryRefreshToken();
+    if (refreshed) {
+      scheduleProactiveRefresh(get);
+    }
+  }, delayMs);
+}
+
 export const useAuthStore = create((set, get) => ({
   user: readJson(STORAGE_KEYS.user),
   token: localStorage.getItem(STORAGE_KEYS.token) || null,
@@ -60,9 +96,11 @@ export const useAuthStore = create((set, get) => ({
       group: group || null,
       isAuthenticated: true,
     });
+    scheduleProactiveRefresh(get);
   },
 
   logout() {
+    clearProactiveRefresh();
     localStorage.removeItem(STORAGE_KEYS.token);
     localStorage.removeItem(STORAGE_KEYS.refreshToken);
     localStorage.removeItem(STORAGE_KEYS.user);
@@ -149,12 +187,14 @@ export const useAuthStore = create((set, get) => ({
         entitlements,
       });
       set({ hasHydratedAuth: true, isAuthenticated: true });
+      scheduleProactiveRefresh(get);
       return true;
     } catch (error) {
       if (isAuthFailure(error) && storedRefreshToken) {
         const refreshed = await get().tryRefreshToken();
         if (refreshed) {
           set({ hasHydratedAuth: true, isAuthenticated: true });
+          scheduleProactiveRefresh(get);
           return true;
         }
         set({ hasHydratedAuth: true });
@@ -168,6 +208,7 @@ export const useAuthStore = create((set, get) => ({
       }
 
       set({ hasHydratedAuth: true, isAuthenticated: true });
+      scheduleProactiveRefresh(get);
       return true;
     }
   },
