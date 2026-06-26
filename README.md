@@ -27,7 +27,7 @@ Quick start:
 
 ```powershell
 npm run verify:env   # check Node, webOS TV CLI, staging
-npm run dev          # browser at http://localhost:5173
+npm run dev          # browser at http://localhost:5174
 npm run sim          # build dist/ and launch webOS TV Simulator
 ```
 

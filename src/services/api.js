@@ -64,11 +64,20 @@ async function request(path, options = {}) {
     }
   }
 
-  const response = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (error) {
+    throw new ApiError('Network unavailable', {
+      status: 0,
+      code: 'NETWORK_ERROR',
+      data: { cause: error?.message },
+    });
+  }
 
   const data = await parseJsonResponse(response);
 

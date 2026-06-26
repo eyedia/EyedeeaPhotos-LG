@@ -36,10 +36,14 @@ try {
 
   Write-Host "Generating icons..."
   npm run icons
+  if ($LASTEXITCODE -ne 0) { throw "npm run icons failed - need Node 18 or newer" }
+
   npm run submission-assets
+  if ($LASTEXITCODE -ne 0) { throw "npm run submission-assets failed" }
 
   Write-Host "Building web app..."
   npm run build
+  if ($LASTEXITCODE -ne 0) { throw "npm run build failed - need Node 18 or newer" }
 
   $Stage = Join-Path $Root "dist"
   if (-not (Test-Path $Stage)) {

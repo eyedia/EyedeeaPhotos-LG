@@ -24,6 +24,17 @@ function Read-DotEnvValue {
   return $null
 }
 
+function Set-ModernNodeFirst {
+  $systemNode = Join-Path ${env:ProgramFiles} 'nodejs'
+  if (-not (Test-Path $systemNode)) {
+    return
+  }
+
+  $normalized = $systemNode.TrimEnd('\')
+  $pathParts = $env:Path -split ';' | Where-Object { $_ -and $_.TrimEnd('\') -ne $normalized }
+  $env:Path = "$normalized;" + ($pathParts -join ';')
+}
+
 function Initialize-WebOSEnvironment {
   param(
     [string]$ProjectRoot = (Split-Path -Parent $PSScriptRoot)
@@ -57,6 +68,9 @@ function Initialize-WebOSEnvironment {
       $env:LG_WEBOS_TV_SDK_HOME = Split-Path (Split-Path $normalized -Parent) -Parent
     }
   }
+
+  # SDK CLI\bin bundles Node 8 — always prefer system Node for npm/vite.
+  Set-ModernNodeFirst
 }
 
 Initialize-WebOSEnvironment

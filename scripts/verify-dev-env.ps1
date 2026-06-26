@@ -30,6 +30,12 @@ $node = Get-Command node -ErrorAction SilentlyContinue
 if ($node) {
   $nodeVer = & node -v
   Write-Host "[OK]   Node $nodeVer"
+  $major = 0
+  if ($nodeVer -match 'v?(\d+)') { $major = [int]$matches[1] }
+  if ($major -lt 18) {
+    Write-Host "[FAIL] Node $major is too old for Vite — need Node 18+. SDK CLI\bin may be shadowing system Node."
+    $ok = $false
+  }
 } else {
   Write-Host "[FAIL] Node not found"
   $ok = $false

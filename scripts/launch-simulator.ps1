@@ -35,10 +35,8 @@ function Get-SimVersion {
 $ver = Get-SimVersion $SimulatorVersion
 $dist = Join-Path $Root "dist"
 
-if (-not (Test-Path (Join-Path $dist "appinfo.json"))) {
-  Write-Host "dist/ not staged. Running stage:webos first..."
-  & "$PSScriptRoot\stage-webos.ps1" -SkipInstall
-}
+Write-Host "Staging dist/ for simulator (icons + build)..."
+& "$PSScriptRoot\stage-webos.ps1" -SkipInstall
 
 $aresLaunch = Get-Command ares-launch -ErrorAction SilentlyContinue
 if (-not $aresLaunch) {

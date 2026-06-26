@@ -179,6 +179,72 @@ button {
   background: #475569;
 }
 
+.btn-reload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border: none;
+  border-radius: 50%;
+  background: #0773ac;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-reload:hover,
+.btn-reload:focus {
+  background: #0ea5e9;
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.35);
+  transform: scale(1.04);
+}
+
+.server-down-screen {
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+.server-down-content {
+  width: min(720px, 88vw);
+  text-align: center;
+  padding: 2rem;
+}
+
+.server-down-icon {
+  width: 160px;
+  height: 160px;
+  margin: 0 auto 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.server-down-icon img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.server-down-content h1 {
+  margin: 0 0 0.75rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #0ea5e9;
+}
+
+.server-down-content p {
+  margin: 0 0 1rem;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: #64748b;
+}
+
+.server-down-content .btn-reload {
+  margin-top: 1.5rem;
+}
+
 .btn-danger {
   background: #b91c1c;
   color: #fff;

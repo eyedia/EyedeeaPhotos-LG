@@ -68,7 +68,7 @@ Best for UI tweaks, API flow, and keyboard navigation.
 npm run dev
 ```
 
-Opens `http://localhost:5173` (fixed port).
+Opens `http://localhost:5174` (fixed port).
 
 ### Viewport
 

@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { RefreshCw } from 'lucide-react';
 import { ACTIVATE_URL } from '../config';
 import { authApi, ApiError } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { getOrCreateDeviceId } from '../utils/deviceId';
+import { isNetworkError } from '../utils/networkError';
+import ServerDownScreen from './ServerDownScreen';
 
 function formatUserCode(value) {
   const compact = String(value || '')
@@ -21,11 +24,13 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
   const [status, setStatus] = useState('loading');
   const [message, setMessage] = useState('Getting your device code…');
   const [retryAfter, setRetryAfter] = useState(0);
+  const [serverDown, setServerDown] = useState(false);
 
   const deviceCodeRef = useRef('');
   const pollIntervalRef = useRef(5);
   const pollTimerRef = useRef(null);
   const issuingRef = useRef(false);
+  const reloadRef = useRef(null);
 
   const clearPollTimer = useCallback(() => {
     if (pollTimerRef.current) {
@@ -47,6 +52,7 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
   const issueCode = useCallback(async () => {
     if (issuingRef.current) return;
     issuingRef.current = true;
+    setServerDown(false);
     setStatus('loading');
     setMessage('Getting your device code…');
 
@@ -59,6 +65,13 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
       setMessage('Enter this code on your phone or computer to sign in.');
       schedulePoll(pollIntervalRef.current * 1000);
     } catch (error) {
+      if (isNetworkError(error)) {
+        setServerDown(true);
+        setStatus('error');
+        setMessage('');
+        return;
+      }
+
       const retry = Number(error?.data?.retry_after || error?.data?.retry_after_seconds || 0);
       if (retry > 0) {
         setRetryAfter(retry);
@@ -66,7 +79,7 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
         setMessage(`Too many attempts. Try again in ${retry} seconds.`);
       } else {
         setStatus('error');
-        setMessage(error?.message || 'Could not get a device code. Please try again.');
+        setMessage(error?.message || 'Could not get a device code.');
       }
     } finally {
       issuingRef.current = false;
@@ -119,6 +132,14 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
       setStatus('waiting');
       schedulePoll(pollIntervalRef.current * 1000);
     } catch (error) {
+      if (isNetworkError(error)) {
+        clearPollTimer();
+        setServerDown(true);
+        setStatus('error');
+        setMessage('');
+        return;
+      }
+
       if (error instanceof ApiError && error.status === 429) {
         const waitSeconds = Number(error?.data?.retry_after || error?.data?.retry_after_seconds || pollIntervalRef.current);
         setRetryAfter(waitSeconds);
@@ -145,6 +166,16 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
     }, 1000);
     return () => clearInterval(timer);
   }, [retryAfter]);
+
+  useEffect(() => {
+    if (status === 'error' && !serverDown) {
+      reloadRef.current?.focus();
+    }
+  }, [serverDown, status]);
+
+  if (serverDown) {
+    return <ServerDownScreen onReload={issueCode} />;
+  }
 
   const activateHost = ACTIVATE_URL.replace(/^https?:\/\//, '');
 
@@ -175,8 +206,14 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
             <span className="status-pill warn">Retry in {retryAfter}s</span>
           )}
           {status === 'error' && (
-            <button type="button" className="btn btn-secondary" onClick={issueCode}>
-              Try again
+            <button
+              ref={reloadRef}
+              type="button"
+              className="btn-reload"
+              onClick={issueCode}
+              aria-label="Reload"
+            >
+              <RefreshCw size={36} strokeWidth={2.25} aria-hidden="true" />
             </button>
           )}
         </div>
