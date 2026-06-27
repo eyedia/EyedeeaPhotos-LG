@@ -38,10 +38,10 @@ $dist = Join-Path $Root "dist"
 Write-Host "Staging dist/ for simulator (icons + build)..."
 & "$PSScriptRoot\stage-webos.ps1" -SkipInstall
 
-$aresLaunch = Get-Command ares-launch -ErrorAction SilentlyContinue
+$aresLaunch = Resolve-WebOSCliExe "ares-launch"
 if (-not $aresLaunch) {
-  throw "ares-launch not found. Install webOS TV CLI (see TESTING.md)."
+  throw "ares-launch not found. Install webOS TV CLI and set LG_WEBOS_TV_SDK_HOME (see TESTING.md)."
 }
 
 Write-Host "Launching on webOS TV $ver Simulator..."
-& ares-launch -s $ver $dist
+& $aresLaunch -s $ver $dist

@@ -39,10 +39,10 @@ if (-not (Test-Path (Join-Path $dist "appinfo.json"))) {
   throw "dist/ not staged. Run npm run stage:webos first."
 }
 
-$aresInspect = Get-Command ares-inspect -ErrorAction SilentlyContinue
+$aresInspect = Resolve-WebOSCliExe "ares-inspect"
 if (-not $aresInspect) {
-  throw "ares-inspect not found. Install webOS TV CLI (see TESTING.md)."
+  throw "ares-inspect not found. Install webOS TV CLI and set LG_WEBOS_TV_SDK_HOME (see TESTING.md)."
 }
 
 Write-Host "Opening inspector for webOS TV $ver Simulator..."
-& ares-inspect -s $ver $dist
+& $aresInspect -s $ver $dist

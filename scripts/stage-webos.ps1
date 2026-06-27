@@ -24,6 +24,14 @@ function Resolve-OfficialWebOSTVJs {
     }
   }
 
+  # CLI-only SDK installs ship webOSTV.js inside bootplate templates (no separate APIs pack).
+  $fromCli = Get-ChildItem (Join-Path $sdkHome "CLI") -Recurse -Filter "webOSTV.js" -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -match 'webOSTVjs' } |
+    Select-Object -First 1 -ExpandProperty FullName
+  if ($fromCli) {
+    return $fromCli
+  }
+
   return $null
 }
 
@@ -67,8 +75,13 @@ try {
     Write-Host "Using official webOSTV.js from SDK: $officialJs"
     Copy-Item -Force $officialJs (Join-Path $webOsDir "webOSTV.js")
   } else {
-    Write-Warning "LG_WEBOS_TV_SDK_HOME not set or webOSTV.js not found - using bundled stub."
-    Write-Warning "Set LG_WEBOS_TV_SDK_HOME for production builds (see docs/LG_PREREQUISITES.md)."
+    if (-not $env:LG_WEBOS_TV_SDK_HOME) {
+      Write-Warning "LG_WEBOS_TV_SDK_HOME is not set - using bundled webOSTV.js stub."
+      Write-Warning "Set LG_WEBOS_TV_SDK_HOME in .env.local (see docs/LG_PREREQUISITES.md)."
+    } else {
+      Write-Warning "webOSTV.js not found under $($env:LG_WEBOS_TV_SDK_HOME) - using bundled stub."
+      Write-Warning "Add the LG APIs pack (APIs\webOSTV.js\) or reinstall CLI+APIs together (see docs/LG_PREREQUISITES.md)."
+    }
     Copy-Item -Force (Join-Path $Root "public\webOSTVjs\webOSTV.js") (Join-Path $webOsDir "webOSTV.js")
   }
 
