@@ -50,9 +50,9 @@ if ($npm) {
   $ok = $false
 }
 
-$ares = Get-Command ares -ErrorAction SilentlyContinue
+$ares = Resolve-WebOSCliExe "ares"
 if ($ares) {
-  $aresVer = & ares -V 2>&1 | Out-String
+  $aresVer = & $ares -V 2>&1 | Out-String
   Write-Host "[OK]   $($aresVer.Trim())"
 } else {
   Write-Host "[FAIL] ares CLI not found - install webOS TV CLI (see docs/LG_PREREQUISITES.md)"
@@ -60,9 +60,9 @@ if ($ares) {
 }
 
 foreach ($cmd in @("ares-package", "ares-install", "ares-launch")) {
-  $found = Get-Command $cmd -ErrorAction SilentlyContinue
+  $found = Resolve-WebOSCliExe $cmd
   if ($found) {
-    Write-Host "[OK]   $cmd available"
+    Write-Host "[OK]   $cmd available (LG SDK)"
   } else {
     Write-Host "[WARN] $cmd not found - required for packaging/signing/TV install"
   }

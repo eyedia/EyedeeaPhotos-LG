@@ -59,7 +59,7 @@ try {
 
   $Stage = Join-Path $Root "dist"
 
-  $aresPackage = Get-Command ares-package -ErrorAction SilentlyContinue
+  $aresPackage = Resolve-WebOSCliExe "ares-package"
   if (-not $aresPackage) {
     Write-Warning "ares-package not found. Install webOS TV CLI (see TESTING.md)."
     Write-Host "Staged app is ready at dist/ - run 'ares-package dist' after installing CLI."
@@ -102,7 +102,7 @@ Both files come from LG Seller Lounge -> Development.
     Write-Host "Packaging IPK..."
   }
 
-  & ares-package @packageArgs $Stage
+  & $aresPackage @packageArgs $Stage
 
   $ipk = Get-ChildItem -Path $PackageDir -Filter "*.ipk" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
   if (-not $ipk) {
@@ -119,13 +119,13 @@ Both files come from LG Seller Lounge -> Development.
   }
 
   if ($DeviceName) {
-    $aresInstall = Get-Command ares-install -ErrorAction SilentlyContinue
-    $aresLaunch = Get-Command ares-launch -ErrorAction SilentlyContinue
+    $aresInstall = Resolve-WebOSCliExe "ares-install"
+    $aresLaunch = Resolve-WebOSCliExe "ares-launch"
     if ($aresInstall -and $ipk) {
       Write-Host "Installing to device $DeviceName..."
-      & ares-install -d $DeviceName $ipk.FullName
+      & $aresInstall -d $DeviceName $ipk.FullName
       if ($aresLaunch) {
-        & ares-launch -d $DeviceName com.eyediatech.eyedeeaphotos
+        & $aresLaunch -d $DeviceName com.eyediatech.eyedeeaphotos
       }
     }
   }

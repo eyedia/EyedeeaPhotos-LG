@@ -73,4 +73,34 @@ function Initialize-WebOSEnvironment {
   Set-ModernNodeFirst
 }
 
+function Resolve-WebOSCliExe {
+  param(
+    [Parameter(Mandatory)]
+    [string]$Name
+  )
+
+  $sdkHome = $env:LG_WEBOS_TV_SDK_HOME
+  if (-not $sdkHome) {
+    return $null
+  }
+
+  $cliBin = Join-Path $sdkHome "CLI\bin"
+  if (-not (Test-Path $cliBin)) {
+    return $null
+  }
+
+  # PowerShell resolves npm's ares-*.ps1 (@webosose/ares-cli) before SDK .cmd on PATH.
+  $cmd = Join-Path $cliBin "$Name.cmd"
+  if (Test-Path $cmd) {
+    return $cmd
+  }
+
+  $sh = Join-Path $cliBin $Name
+  if (Test-Path $sh) {
+    return $sh
+  }
+
+  return $null
+}
+
 Initialize-WebOSEnvironment
