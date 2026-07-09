@@ -5,7 +5,12 @@ import { authApi, ApiError } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { getOrCreateDeviceId } from '../utils/deviceId';
 import { isNetworkError } from '../utils/networkError';
+import { useWebOSOkKey } from '../hooks/useWebOSRemote';
 import ServerDownScreen from './ServerDownScreen';
+
+const CYCLE_DURATION_MS = 3 * 60 * 1000;
+const MAX_CYCLES = 3;
+const PROGRESS_TICK_MS = 200;
 
 function formatUserCode(value) {
   const compact = String(value || '')
@@ -22,15 +27,20 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
 
   const [userCode, setUserCode] = useState('');
   const [status, setStatus] = useState('loading');
-  const [message, setMessage] = useState('Getting your device code…');
   const [retryAfter, setRetryAfter] = useState(0);
   const [serverDown, setServerDown] = useState(false);
+  const [cycleProgress, setCycleProgress] = useState(1);
 
   const deviceCodeRef = useRef('');
   const pollIntervalRef = useRef(5);
   const pollTimerRef = useRef(null);
+  const cycleTimerRef = useRef(null);
+  const cycleDeadlineRef = useRef(0);
+  const cycleIndexRef = useRef(0);
   const issuingRef = useRef(false);
+  const exhaustedRef = useRef(false);
   const reloadRef = useRef(null);
+  const advanceCycleRef = useRef(async () => {});
 
   const clearPollTimer = useCallback(() => {
     if (pollTimerRef.current) {
@@ -39,9 +49,40 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
     }
   }, []);
 
+  const clearCycleTimer = useCallback(() => {
+    if (cycleTimerRef.current) {
+      clearInterval(cycleTimerRef.current);
+      cycleTimerRef.current = null;
+    }
+  }, []);
+
+  const stopActivation = useCallback(() => {
+    clearPollTimer();
+    clearCycleTimer();
+    exhaustedRef.current = true;
+  }, [clearCycleTimer, clearPollTimer]);
+
+  const startCycleTimer = useCallback(() => {
+    clearCycleTimer();
+    cycleDeadlineRef.current = Date.now() + CYCLE_DURATION_MS;
+    setCycleProgress(1);
+
+    cycleTimerRef.current = setInterval(() => {
+      const remaining = cycleDeadlineRef.current - Date.now();
+      if (remaining <= 0) {
+        clearCycleTimer();
+        setCycleProgress(0);
+        advanceCycleRef.current();
+        return;
+      }
+      setCycleProgress(remaining / CYCLE_DURATION_MS);
+    }, PROGRESS_TICK_MS);
+  }, [clearCycleTimer]);
+
   const pollOnceRef = useRef(async () => {});
 
   const schedulePoll = useCallback((delayMs) => {
+    if (exhaustedRef.current) return;
     clearPollTimer();
     pollTimerRef.current = setTimeout(() => {
       pollTimerRef.current = null;
@@ -49,12 +90,16 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
     }, delayMs);
   }, [clearPollTimer]);
 
-  const issueCode = useCallback(async () => {
+  const issueCode = useCallback(async ({ resetCycle = false } = {}) => {
     if (issuingRef.current) return;
     issuingRef.current = true;
     setServerDown(false);
     setStatus('loading');
-    setMessage('Getting your device code…');
+
+    if (resetCycle) {
+      exhaustedRef.current = false;
+      cycleIndexRef.current = 0;
+    }
 
     try {
       const data = await authApi.issueDeviceCode(deviceId);
@@ -62,13 +107,13 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
       setUserCode(formatUserCode(data.user_code));
       pollIntervalRef.current = Number(data.interval) > 0 ? Number(data.interval) : 5;
       setStatus('waiting');
-      setMessage('Enter this code on your phone or computer to sign in.');
+      startCycleTimer();
       schedulePoll(pollIntervalRef.current * 1000);
     } catch (error) {
+      clearCycleTimer();
       if (isNetworkError(error)) {
         setServerDown(true);
         setStatus('error');
-        setMessage('');
         return;
       }
 
@@ -76,17 +121,45 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
       if (retry > 0) {
         setRetryAfter(retry);
         setStatus('blocked');
-        setMessage(`Too many attempts. Try again in ${retry} seconds.`);
       } else {
         setStatus('error');
-        setMessage(error?.message || 'Could not get a device code.');
       }
     } finally {
       issuingRef.current = false;
     }
-  }, [deviceId, schedulePoll]);
+  }, [clearCycleTimer, deviceId, schedulePoll, startCycleTimer]);
+
+  const advanceCycle = useCallback(async () => {
+    clearCycleTimer();
+    clearPollTimer();
+    deviceCodeRef.current = '';
+
+    if (cycleIndexRef.current >= MAX_CYCLES - 1) {
+      setUserCode('');
+      setStatus('exhausted');
+      stopActivation();
+      return;
+    }
+
+    cycleIndexRef.current += 1;
+    await issueCode();
+  }, [clearCycleTimer, clearPollTimer, issueCode, stopActivation]);
+
+  advanceCycleRef.current = advanceCycle;
+
+  const restartActivation = useCallback(async () => {
+    stopActivation();
+    exhaustedRef.current = false;
+    cycleIndexRef.current = 0;
+    deviceCodeRef.current = '';
+    setUserCode('');
+    setRetryAfter(0);
+    await issueCode({ resetCycle: true });
+  }, [issueCode, stopActivation]);
 
   pollOnceRef.current = async () => {
+    if (exhaustedRef.current) return;
+
     const deviceCode = deviceCodeRef.current;
     if (!deviceCode) {
       await issueCode();
@@ -98,7 +171,7 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
       const pollStatus = String(data?.status || '').toLowerCase();
 
       if (pollStatus === 'approved') {
-        clearPollTimer();
+        stopActivation();
         persistAuth({
           user: data.user,
           token: data.token,
@@ -111,21 +184,12 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
       }
 
       if (pollStatus === 'expired' || pollStatus === 'consumed' || pollStatus === 'invalid') {
-        clearPollTimer();
-        deviceCodeRef.current = '';
-        setUserCode('');
-        setStatus('expired');
-        setMessage('Code expired. Getting a new code…');
-        await issueCode();
+        await advanceCycle();
         return;
       }
 
       if (pollStatus === 'blocked') {
-        setStatus('blocked');
-        setMessage('Too many sign-in attempts. Getting a new code…');
-        clearPollTimer();
-        deviceCodeRef.current = '';
-        await issueCode();
+        await advanceCycle();
         return;
       }
 
@@ -133,10 +197,9 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
       schedulePoll(pollIntervalRef.current * 1000);
     } catch (error) {
       if (isNetworkError(error)) {
-        clearPollTimer();
+        stopActivation();
         setServerDown(true);
         setStatus('error');
-        setMessage('');
         return;
       }
 
@@ -144,7 +207,6 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
         const waitSeconds = Number(error?.data?.retry_after || error?.data?.retry_after_seconds || pollIntervalRef.current);
         setRetryAfter(waitSeconds);
         setStatus('waiting');
-        setMessage('Waiting to check activation…');
         schedulePoll(Math.max(waitSeconds, pollIntervalRef.current) * 1000);
         return;
       }
@@ -155,9 +217,14 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
   };
 
   useEffect(() => {
-    issueCode();
-    return () => clearPollTimer();
-  }, [clearPollTimer, issueCode]);
+    restartActivation();
+    return () => {
+      clearPollTimer();
+      clearCycleTimer();
+    };
+    // Mount only — restartActivation is stable enough for initial session start.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (retryAfter <= 0) return undefined;
@@ -168,13 +235,23 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
   }, [retryAfter]);
 
   useEffect(() => {
-    if (status === 'error' && !serverDown) {
+    if ((status === 'exhausted' || status === 'error') && !serverDown) {
       reloadRef.current?.focus();
     }
   }, [serverDown, status]);
 
+  useWebOSOkKey(
+    useCallback(() => {
+      if (status === 'exhausted' || status === 'error') {
+        restartActivation();
+        return true;
+      }
+      return false;
+    }, [restartActivation, status])
+  );
+
   if (serverDown) {
-    return <ServerDownScreen onReload={issueCode} />;
+    return <ServerDownScreen onReload={restartActivation} />;
   }
 
   const activateHost = ACTIVATE_URL.replace(/^https?:\/\//, '');
@@ -182,39 +259,80 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
   return (
     <div className="screen device-code-screen">
       <div className="device-code-card">
-        <img src="./logo.svg" alt="Eyedeea Photos" className="app-logo" />
-        <h1>Sign in to Eyedeea Photos</h1>
-        <p className="lead">{message}</p>
+        <img src="./brand-icon-512.png" alt="Eyedeea Photos" className="app-logo" />
+        <h1>Eyedeea Photos</h1>
+        <p className="app-tagline">Your memories, everywhere</p>
 
-        {userCode ? (
-          <div className="code-display" aria-live="polite">
-            <span className="code-label">Your code</span>
-            <span className="code-value">{userCode}</span>
+        <div className="activation-section">
+          <h2 className="activation-title">Device Activation</h2>
+
+          <div className="activate-instructions">
+            <p>Go to</p>
+            <p className="activate-url">{activateHost}</p>
+            <p>and enter the code:</p>
           </div>
-        ) : null}
 
-        <div className="activate-instructions">
-          <p>On your phone or computer, go to:</p>
-          <p className="activate-url">{activateHost}</p>
-          <p>Sign in and enter the code shown above.</p>
-        </div>
+          {userCode ? (
+            <div className="code-display" aria-live="polite">
+              <span className="code-value">{userCode}</span>
+            </div>
+          ) : null}
 
-        <div className="status-row">
-          {status === 'loading' && <span className="spinner" aria-hidden="true" />}
-          {status === 'waiting' && <span className="status-pill">Waiting for activation…</span>}
-          {status === 'blocked' && retryAfter > 0 && (
-            <span className="status-pill warn">Retry in {retryAfter}s</span>
+          {status === 'loading' && (
+            <div className="status-row">
+              <span className="spinner" aria-hidden="true" />
+            </div>
           )}
-          {status === 'error' && (
-            <button
-              ref={reloadRef}
-              type="button"
-              className="btn-reload"
-              onClick={issueCode}
-              aria-label="Reload"
+
+          {status === 'waiting' && userCode && (
+            <div
+              className="activation-timeout"
+              role="progressbar"
+              aria-label="Activation time remaining"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(cycleProgress * 100)}
             >
-              <RefreshCw size={36} strokeWidth={2.25} aria-hidden="true" />
-            </button>
+              <div
+                className="activation-timeout-bar"
+                style={{ width: `${cycleProgress * 100}%` }}
+              />
+            </div>
+          )}
+
+          {status === 'blocked' && retryAfter > 0 && (
+            <p className="activation-hint warn">Retry in {retryAfter}s</p>
+          )}
+
+          {status === 'exhausted' && (
+            <>
+              <p className="exhausted-message">No user input provided.</p>
+              <div className="status-row">
+                <button
+                  ref={reloadRef}
+                  type="button"
+                  className="btn-reload"
+                  onClick={restartActivation}
+                  aria-label="Try again"
+                >
+                  <RefreshCw size={36} strokeWidth={2.25} aria-hidden="true" />
+                </button>
+              </div>
+            </>
+          )}
+
+          {status === 'error' && (
+            <div className="status-row">
+              <button
+                ref={reloadRef}
+                type="button"
+                className="btn-reload"
+                onClick={restartActivation}
+                aria-label="Reload"
+              >
+                <RefreshCw size={36} strokeWidth={2.25} aria-hidden="true" />
+              </button>
+            </div>
           )}
         </div>
       </div>

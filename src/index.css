@@ -60,13 +60,32 @@ button {
   width: 96px;
   height: 96px;
   margin-bottom: 1.5rem;
+  object-fit: contain;
 }
 
 .device-code-card h1,
 .settings-card h1 {
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.35rem;
   font-size: 2.4rem;
   font-weight: 700;
+}
+
+.app-tagline {
+  margin: 0 0 2.5rem;
+  color: #94a3b8;
+  font-size: 1.05rem;
+  font-weight: 400;
+}
+
+.activation-section {
+  margin-top: 0.5rem;
+}
+
+.activation-title {
+  margin: 0 0 1.75rem;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #f8fafc;
 }
 
 .lead,
@@ -81,7 +100,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  margin: 2rem 0;
+  margin: 1rem 0 1.25rem;
 }
 
 .code-label {
@@ -99,17 +118,53 @@ button {
 }
 
 .activate-instructions {
-  margin: 2rem 0;
-  color: #cbd5e1;
-  font-size: 1.15rem;
+  margin: 0 0 1rem;
+  color: #94a3b8;
+  font-size: 1rem;
   line-height: 1.7;
 }
 
+.activate-instructions p {
+  margin: 0;
+}
+
 .activate-url {
-  margin: 0.75rem 0;
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: #f8fafc;
+  margin: 0.35rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.activation-timeout {
+  width: min(400px, 70%);
+  height: 4px;
+  margin: 1.25rem auto 0;
+  background: rgba(148, 163, 184, 0.22);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.activation-timeout-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #0284c7, #38bdf8);
+  border-radius: 999px;
+  transition: width 0.2s linear;
+}
+
+.activation-hint {
+  margin: 1rem 0 0;
+  color: #94a3b8;
+  font-size: 0.95rem;
+}
+
+.activation-hint.warn {
+  color: #fcd34d;
+}
+
+.exhausted-message {
+  margin: 1.5rem 0 0;
+  color: #cbd5e1;
+  font-size: 1.1rem;
 }
 
 .status-row {
