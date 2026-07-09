@@ -19,7 +19,7 @@ Optional: build a second package at 1280×720 for older webOS models by changing
 
 | Asset | Size | Notes |
 |-------|------|-------|
-| App icon | 400×400 PNG | `npm run submission-assets` — branded from `public/logo.svg` |
+| App icon | 400×400 PNG | `npm run submission-assets` — branded from `public/brand-icon-512.png` |
 | Launcher background | 1920×1080 JPG/PNG | Brand image shown when app tile is focused |
 | Splash screen | 1920×1080 JPG/PNG | Shown while app launches |
 | Primary screenshot | 1280×720 or 960×540 | Device code screen |

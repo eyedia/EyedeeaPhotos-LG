@@ -64,11 +64,48 @@ npm run verify:env
 
 Best for UI tweaks, API flow, and keyboard navigation.
 
+### Dev vs prod variants
+
+Same pattern as FireTV: two environment profiles controlled by Vite `--mode`.
+
+| Command | Env file | API / activate |
+|---------|----------|----------------|
+| `npm run dev` | `.env.development` | Local LAN (e.g. `192.168.x.x:5174`) |
+| `npm run dev:prod` | `.env.production` | `eyedeeaphotos.com` |
+| `npm run build` | `.env.production` | Production (submission IPK) |
+| `npm run build:dev` | `.env.development` | Local (dev IPK for simulator/TV) |
+
+```powershell
+# Local backend + activate page on your LAN
+npm run dev
+
+# Production API + activate — use for weather, slideshow, real account testing
+npm run dev:prod
+```
+
+Edit [`.env.development`](.env.development) for local URLs. Production URLs live in [`.env.production`](.env.production).
+
+### Weather panels
+
+Weather is fetched from the **API** (`/weather/current`), not the activate page. On localhost/local IP:
+
+- Browser geolocation may be blocked or unreliable
+- A **local dev API** may not resolve location from your IP
+- **webOS TV** skips browser geolocation entirely — the server must infer location from the request IP
+
+**To test weather:** run `npm run dev:prod` (or `npm run build` + simulator). Sign in with a production account; weather should appear bottom-right on the slideshow when the API returns valid data.
+
+```powershell
+npm run dev:prod
+```
+
+Opens `http://localhost:5175` (fixed port) with production endpoints.
+
 ```powershell
 npm run dev
 ```
 
-Opens `http://localhost:5175` (fixed port).
+Opens `http://localhost:5175` (fixed port) with local dev endpoints.
 
 ### Viewport
 

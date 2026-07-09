@@ -65,7 +65,7 @@ try {
   if (Test-Path (Join-Path $Root "public\icon-400.png")) {
     Copy-Item -Force (Join-Path $Root "public\icon-400.png") (Join-Path $Stage "icon-400.png")
   }
-  Copy-Item -Force (Join-Path $Root "public\logo.svg") (Join-Path $Stage "logo.svg")
+  Copy-Item -Force (Join-Path $Root "public\brand-icon-512.png") (Join-Path $Stage "brand-icon-512.png")
 
   $webOsDir = Join-Path $Stage "webOSTVjs"
   New-Item -ItemType Directory -Force -Path $webOsDir | Out-Null

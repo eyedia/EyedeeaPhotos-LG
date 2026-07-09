@@ -37,7 +37,7 @@ function WeatherPanels({ weather, config, compact }) {
   return (
     <div
       className="weather-panels"
-      style={compact ? { transform: 'scale(0.72)', transformOrigin: 'bottom right' } : undefined}
+      style={compact ? { transform: 'scale(0.9)', transformOrigin: 'bottom right' } : undefined}
     >
       <div className="weather-panels-primary">
         {weather.condition && (
@@ -567,19 +567,30 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
 
   useEffect(() => {
     const onKeyDown = (event) => {
-      if (event.key === 'ArrowLeft' && canGoPrev) {
+      const isLeft = event.key === 'ArrowLeft' || event.keyCode === 37;
+      const isRight = event.key === 'ArrowRight' || event.keyCode === 39;
+      const isOk =
+        event.key === 'Enter'
+        || event.key === 'NumpadEnter'
+        || event.keyCode === 13
+        || event.keyCode === 417;
+
+      if (isLeft && canGoPrev) {
         event.preventDefault();
         goPrev();
         showControlsTemporarily();
+        return;
       }
-      if (event.key === 'ArrowRight' && canGoNext) {
+      if (isRight && canGoNext) {
         event.preventDefault();
         goNext();
         showControlsTemporarily();
+        return;
       }
-      if (event.key === 'ArrowUp' || event.key === 'Enter') {
+      if (isOk) {
         event.preventDefault();
-        showControlsTemporarily();
+        toggleHistoryPanel();
+        return;
       }
       if (event.key === 'Escape' && isPanelOpen) {
         event.preventDefault();
@@ -589,7 +600,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [canGoNext, canGoPrev, goNext, goPrev, isPanelOpen, showControlsTemporarily]);
+  }, [canGoNext, canGoPrev, goNext, goPrev, isPanelOpen, showControlsTemporarily, toggleHistoryPanel]);
 
   const currentPhoto = photos[currentIndex];
   const currentPhotoBlobUrl = currentPhoto ? blobUrlsRef.current.get(currentPhoto.photo_id) : null;
@@ -680,7 +691,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
           aria-label="Settings"
           title="Settings"
         >
-          <Settings size={24} />
+          <Settings size={32} />
         </button>
         <button
           type="button"
@@ -689,7 +700,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
           aria-label="Toggle history panel"
           title="History"
         >
-          <Menu size={24} />
+          <Menu size={32} />
         </button>
       </div>
 
@@ -700,7 +711,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
         disabled={!canGoPrev}
         aria-label="Previous photo"
       >
-        <ChevronLeft size={32} />
+        <ChevronLeft size={40} />
       </button>
       <button
         type="button"
@@ -709,7 +720,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
         disabled={!canGoNext}
         aria-label="Next photo"
       >
-        <ChevronRight size={32} />
+        <ChevronRight size={40} />
       </button>
 
       <aside className={`history-panel ${isPanelOpen ? 'open' : ''}`} aria-hidden={!isPanelOpen}>
