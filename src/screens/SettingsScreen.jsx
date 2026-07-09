@@ -1,23 +1,42 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuthStore } from '../stores/authStore';
+import { useWebOSOkKey } from '../hooks/useWebOSRemote';
 
 export default function SettingsScreen({ onBack, onLogout }) {
   const user = useAuthStore((state) => state.user);
-  const group = useAuthStore((state) => state.group);
-  const backButtonRef = useRef(null);
+  const [selectedAction, setSelectedAction] = useState('back');
 
   const displayName = user?.name || user?.email || 'Signed in';
   const email = user?.email || '—';
-  const household = user?.current_household_name || user?.household_name || 'Your household';
-  const planLabel = group && group !== 'auth_user' && group !== 'public_user' ? group.replace(/_/g, ' ') : 'Active subscription';
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     useAuthStore.getState().logout();
     onLogout();
-  };
+  }, [onLogout]);
+
+  useWebOSOkKey(
+    useCallback(() => {
+      if (selectedAction === 'back') {
+        onBack();
+        return true;
+      }
+      handleLogout();
+      return true;
+    }, [handleLogout, onBack, selectedAction])
+  );
 
   useEffect(() => {
-    backButtonRef.current?.focus();
+    const handleKeyDown = (event) => {
+      const isLeft = event.key === 'ArrowLeft' || event.keyCode === 37;
+      const isRight = event.key === 'ArrowRight' || event.keyCode === 39;
+      if (!isLeft && !isRight) return;
+
+      event.preventDefault();
+      setSelectedAction((current) => (current === 'back' ? 'logout' : 'back'));
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, []);
 
   return (
@@ -35,21 +54,25 @@ export default function SettingsScreen({ onBack, onLogout }) {
             <dt>Email</dt>
             <dd>{email}</dd>
           </div>
-          <div className="settings-row">
-            <dt>Household</dt>
-            <dd>{household}</dd>
-          </div>
-          <div className="settings-row">
-            <dt>Plan</dt>
-            <dd className="capitalize">{planLabel}</dd>
-          </div>
         </dl>
 
         <div className="settings-actions">
-          <button type="button" className="btn btn-secondary" ref={backButtonRef} onClick={onBack}>
-            Back to slideshow
+          <button
+            type="button"
+            className={`btn btn-settings${selectedAction === 'back' ? ' is-selected' : ''}`}
+            onClick={onBack}
+            onFocus={() => setSelectedAction('back')}
+            onMouseEnter={() => setSelectedAction('back')}
+          >
+            Back
           </button>
-          <button type="button" className="btn btn-danger" onClick={handleLogout}>
+          <button
+            type="button"
+            className={`btn btn-settings${selectedAction === 'logout' ? ' is-selected' : ''}`}
+            onClick={handleLogout}
+            onFocus={() => setSelectedAction('logout')}
+            onMouseEnter={() => setSelectedAction('logout')}
+          >
             Log out
           </button>
         </div>

@@ -30,6 +30,7 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
   const [retryAfter, setRetryAfter] = useState(0);
   const [serverDown, setServerDown] = useState(false);
   const [cycleProgress, setCycleProgress] = useState(1);
+  const [instantBarReset, setInstantBarReset] = useState(false);
 
   const deviceCodeRef = useRef('');
   const pollIntervalRef = useRef(5);
@@ -65,6 +66,7 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
   const startCycleTimer = useCallback(() => {
     clearCycleTimer();
     cycleDeadlineRef.current = Date.now() + CYCLE_DURATION_MS;
+    setInstantBarReset(true);
     setCycleProgress(1);
 
     cycleTimerRef.current = setInterval(() => {
@@ -90,11 +92,13 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
     }, delayMs);
   }, [clearPollTimer]);
 
-  const issueCode = useCallback(async ({ resetCycle = false } = {}) => {
+  const issueCode = useCallback(async ({ resetCycle = false, showLoading = true } = {}) => {
     if (issuingRef.current) return;
     issuingRef.current = true;
     setServerDown(false);
-    setStatus('loading');
+    if (showLoading) {
+      setStatus('loading');
+    }
 
     if (resetCycle) {
       exhaustedRef.current = false;
@@ -142,7 +146,7 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
     }
 
     cycleIndexRef.current += 1;
-    await issueCode();
+    await issueCode({ showLoading: false });
   }, [clearCycleTimer, clearPollTimer, issueCode, stopActivation]);
 
   advanceCycleRef.current = advanceCycle;
@@ -217,6 +221,14 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
   };
 
   useEffect(() => {
+    if (!instantBarReset) return undefined;
+    const frame = requestAnimationFrame(() => {
+      setInstantBarReset(false);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [instantBarReset]);
+
+  useEffect(() => {
     restartActivation();
     return () => {
       clearPollTimer();
@@ -278,13 +290,13 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
             </div>
           ) : null}
 
-          {status === 'loading' && (
+          {status === 'loading' && !userCode && (
             <div className="status-row">
               <span className="spinner" aria-hidden="true" />
             </div>
           )}
 
-          {status === 'waiting' && userCode && (
+          {userCode && status === 'waiting' && (
             <div
               className="activation-timeout"
               role="progressbar"
@@ -294,7 +306,7 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
               aria-valuenow={Math.round(cycleProgress * 100)}
             >
               <div
-                className="activation-timeout-bar"
+                className={`activation-timeout-bar${instantBarReset ? ' activation-timeout-bar--instant' : ''}`}
                 style={{ width: `${cycleProgress * 100}%` }}
               />
             </div>
@@ -313,9 +325,10 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
                   type="button"
                   className="btn-reload"
                   onClick={restartActivation}
-                  aria-label="Try again"
+                  aria-label="Refresh"
                 >
-                  <RefreshCw size={36} strokeWidth={2.25} aria-hidden="true" />
+                  <RefreshCw size={22} strokeWidth={2.25} aria-hidden="true" />
+                  Refresh
                 </button>
               </div>
             </>
@@ -328,9 +341,10 @@ export default function DeviceCodeScreen({ onAuthenticated }) {
                 type="button"
                 className="btn-reload"
                 onClick={restartActivation}
-                aria-label="Reload"
+                aria-label="Refresh"
               >
-                <RefreshCw size={36} strokeWidth={2.25} aria-hidden="true" />
+                <RefreshCw size={22} strokeWidth={2.25} aria-hidden="true" />
+                Refresh
               </button>
             </div>
           )}
