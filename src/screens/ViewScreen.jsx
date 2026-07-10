@@ -18,6 +18,8 @@ const HEARTBEAT_INTERVAL_MS = 15000;
 const WEATHER_REFRESH_MS = 30 * 60 * 1000;
 const HISTORY_DISPLAY_COUNT = 15;
 const DEFAULT_REFRESH_CLIENT_SECONDS = 30;
+/** Set true to show history icon, OK-to-toggle panel, and recent-history sidebar. */
+const HISTORY_PANEL_ENABLED = false;
 
 function PhotoMetadataCaptions({ photoData }) {
   return (
@@ -539,6 +541,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
   }, [isPanelOpen]);
 
   const toggleHistoryPanel = useCallback(() => {
+    if (!HISTORY_PANEL_ENABLED) return;
     setIsPanelOpen((open) => {
       const next = !open;
       if (next) {
@@ -587,12 +590,12 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
         showControlsTemporarily();
         return;
       }
-      if (isOk) {
+      if (isOk && HISTORY_PANEL_ENABLED) {
         event.preventDefault();
         toggleHistoryPanel();
         return;
       }
-      if (event.key === 'Escape' && isPanelOpen) {
+      if (event.key === 'Escape' && HISTORY_PANEL_ENABLED && isPanelOpen) {
         event.preventDefault();
         setIsPanelOpen(false);
       }
@@ -693,15 +696,17 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
         >
           <Settings size={32} />
         </button>
-        <button
-          type="button"
-          className="view-icon-btn"
-          onClick={toggleHistoryPanel}
-          aria-label="Toggle history panel"
-          title="History"
-        >
-          <Menu size={32} />
-        </button>
+        {HISTORY_PANEL_ENABLED && (
+          <button
+            type="button"
+            className="view-icon-btn"
+            onClick={toggleHistoryPanel}
+            aria-label="Toggle history panel"
+            title="History"
+          >
+            <Menu size={32} />
+          </button>
+        )}
       </div>
 
       <button
@@ -723,6 +728,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
         <ChevronRight size={40} />
       </button>
 
+      {HISTORY_PANEL_ENABLED && (
       <aside className={`history-panel ${isPanelOpen ? 'open' : ''}`} aria-hidden={!isPanelOpen}>
         <div className="history-panel-header">
           <h2>Recent History</h2>
@@ -759,6 +765,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
             })}
         </div>
       </aside>
+      )}
     </div>
   );
 }
