@@ -119,6 +119,8 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
   const [showWeatherPanel, setShowWeatherPanel] = useState(true);
   const [compactWeather, setCompactWeather] = useState(false);
   const [optimalSize, setOptimalSize] = useState(() => getOptimalVariantSize());
+  const [imageErrorPhotoId, setImageErrorPhotoId] = useState(null);
+  const [imageLoadNonce, setImageLoadNonce] = useState(0);
   const [, triggerBlobUpdate] = useReducer((x) => x + 1, 0);
 
   const maxLoadedOffsetRef = useRef(0);
@@ -137,12 +139,26 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
     photosRef.current = photos;
   }, [photos]);
 
+  const revokeDisplayUrl = useCallback((url) => {
+    if (typeof url === 'string' && url.startsWith('blob:')) {
+      URL.revokeObjectURL(url);
+    }
+  }, []);
+
   const clearBlobCache = useCallback(() => {
-    blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    blobUrlsRef.current.forEach((url) => revokeDisplayUrl(url));
     blobUrlsRef.current.clear();
     preloadedUrlsRef.current.clear();
+    setImageErrorPhotoId(null);
     triggerBlobUpdate();
-  }, []);
+  }, [revokeDisplayUrl]);
+
+  const setDisplayUrl = useCallback((photoId, url) => {
+    const previous = blobUrlsRef.current.get(photoId);
+    if (previous && previous !== url) revokeDisplayUrl(previous);
+    blobUrlsRef.current.set(photoId, url);
+    triggerBlobUpdate();
+  }, [revokeDisplayUrl]);
 
   const mergePhotos = useCallback((current, incoming) => {
     const seen = new Set();
@@ -166,17 +182,23 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
         if (!url || !photoId || preloadedUrlsRef.current.has(photoId)) return;
 
         preloadedUrlsRef.current.add(photoId);
+        const urlWithSize = addSizeParam(url, optimalSize);
         try {
-          const urlWithSize = addSizeParam(url, optimalSize);
           const blob = await fetchAuthenticatedBlob(urlWithSize);
-          blobUrlsRef.current.set(photoId, URL.createObjectURL(blob));
-          triggerBlobUpdate();
+          setDisplayUrl(photoId, URL.createObjectURL(blob));
         } catch (error) {
-          preloadedUrlsRef.current.delete(photoId);
           if (error?.status === 401) {
+            preloadedUrlsRef.current.delete(photoId);
             useAuthStore.getState().logout();
             onSessionExpired();
+            return;
           }
+          console.warn('Authenticated photo fetch failed; falling back to direct URL', {
+            photoId,
+            url: urlWithSize,
+            error,
+          });
+          setDisplayUrl(photoId, urlWithSize);
         }
       };
 
@@ -187,7 +209,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
         items.forEach((item) => loadPhoto(item));
       }
     },
-    [onSessionExpired, optimalSize]
+    [onSessionExpired, optimalSize, setDisplayUrl]
   );
 
   const handleApiAuthFailure = useCallback(
@@ -448,6 +470,10 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
   }, [activeScope, currentIndex, householdId, photos]);
 
   useEffect(() => {
+    setImageErrorPhotoId(null);
+  }, [currentIndex]);
+
+  useEffect(() => {
     const photo = photos[currentIndex];
     const photoId = photo?.photo_id;
     const photoUrl = photo?.photo_url;
@@ -455,25 +481,34 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
 
     let cancelled = false;
     (async () => {
+      const urlWithSize = addSizeParam(photoUrl, optimalSize);
       try {
-        const urlWithSize = addSizeParam(photoUrl, optimalSize);
         const blob = await fetchAuthenticatedBlob(urlWithSize);
         if (!cancelled) {
-          blobUrlsRef.current.set(photoId, URL.createObjectURL(blob));
-          triggerBlobUpdate();
+          setDisplayUrl(photoId, URL.createObjectURL(blob));
+          preloadedUrlsRef.current.add(photoId);
         }
       } catch (error) {
-        if (!cancelled && error?.status === 401) {
+        if (cancelled) return;
+        if (error?.status === 401) {
           useAuthStore.getState().logout();
           onSessionExpired();
+          return;
         }
+        console.warn('Authenticated photo fetch failed; falling back to direct URL', {
+          photoId,
+          url: urlWithSize,
+          error,
+        });
+        setDisplayUrl(photoId, urlWithSize);
+        preloadedUrlsRef.current.add(photoId);
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [currentIndex, onSessionExpired, optimalSize, photos]);
+  }, [currentIndex, imageLoadNonce, onSessionExpired, optimalSize, photos, setDisplayUrl]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -496,11 +531,36 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
 
   useEffect(
     () => () => {
-      blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      blobUrlsRef.current.forEach((url) => {
+        if (typeof url === 'string' && url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
       blobUrlsRef.current.clear();
     },
     []
   );
+
+  const handleImageError = useCallback((photoId) => {
+    if (photoId == null) return;
+    setImageErrorPhotoId(photoId);
+  }, []);
+
+  const retryCurrentPhoto = useCallback(() => {
+    const photo = photosRef.current[currentIndex];
+    const photoId = photo?.photo_id;
+    if (photoId == null) return;
+
+    const previous = blobUrlsRef.current.get(photoId);
+    if (previous) {
+      revokeDisplayUrl(previous);
+      blobUrlsRef.current.delete(photoId);
+    }
+    preloadedUrlsRef.current.delete(photoId);
+    setImageErrorPhotoId(null);
+    triggerBlobUpdate();
+    setImageLoadNonce((n) => n + 1);
+  }, [currentIndex, revokeDisplayUrl]);
 
   const canGoPrev = currentIndex > 0;
   const canGoNext = currentIndex < photos.length - 1;
@@ -609,6 +669,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
   const currentPhotoBlobUrl = currentPhoto ? blobUrlsRef.current.get(currentPhoto.photo_id) : null;
   const photoData = currentPhoto?.photo_data;
   const controlsVisible = showControls || isPanelOpen;
+  const currentPhotoHasError = currentPhoto && imageErrorPhotoId === currentPhoto.photo_id;
 
   if (isLoading) {
     return (
@@ -641,15 +702,29 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
       }}
     >
       <div className={`photo-stage ${isPanelOpen ? 'panel-open' : ''}`}>
-        {currentPhotoBlobUrl ? (
+        {currentPhotoHasError ? (
+          <div className="photo-loading">
+            <p>Couldn&apos;t load photo</p>
+            <button type="button" className="btn btn-secondary" onClick={retryCurrentPhoto}>
+              Retry
+            </button>
+          </div>
+        ) : currentPhotoBlobUrl ? (
           isPortrait(photoData) ? (
             <div className="portrait-frame" key={currentPhoto.photo_id}>
-              <img src={currentPhotoBlobUrl} alt="" className="photo-blur-bg" aria-hidden="true" />
+              <img
+                src={currentPhotoBlobUrl}
+                alt=""
+                className="photo-blur-bg"
+                aria-hidden="true"
+                onError={() => handleImageError(currentPhoto.photo_id)}
+              />
               <div className="portrait-card">
                 <img
                   src={currentPhotoBlobUrl}
                   alt={photoData?.filename || 'Photo'}
                   className="photo-main portrait"
+                  onError={() => handleImageError(currentPhoto.photo_id)}
                 />
               </div>
               {showMetadata && (
@@ -664,6 +739,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
               src={currentPhotoBlobUrl}
               alt={photoData?.filename || 'Photo'}
               className="photo-main landscape"
+              onError={() => handleImageError(currentPhoto.photo_id)}
             />
           )
         ) : (
@@ -673,7 +749,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
           </div>
         )}
 
-        {showMetadata && !isPortrait(photoData) && currentPhotoBlobUrl && (
+        {showMetadata && !isPortrait(photoData) && currentPhotoBlobUrl && !currentPhotoHasError && (
           <div className="photo-metadata">
             <PhotoMetadataCaptions photoData={photoData} />
           </div>

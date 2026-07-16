@@ -2,6 +2,16 @@
  * Photo variant size helpers for TV displays.
  */
 
+import { API_BASE } from '../config';
+
+function getApiOrigin() {
+  try {
+    return new URL(API_BASE).origin;
+  } catch {
+    return typeof window !== 'undefined' ? window.location.origin : '';
+  }
+}
+
 export function getOptimalVariantSize() {
   const screenWidth = window.innerWidth || document.documentElement.clientWidth;
   const screenHeight = window.innerHeight || document.documentElement.clientHeight;
@@ -21,7 +31,7 @@ export function addSizeParam(photoUrl, size) {
   if (!photoUrl) return photoUrl;
 
   try {
-    const url = new URL(photoUrl, window.location.origin);
+    const url = new URL(photoUrl, getApiOrigin());
     url.searchParams.set('size', size || 'medium');
     return url.toString();
   } catch {

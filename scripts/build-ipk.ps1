@@ -54,6 +54,9 @@ Push-Location $Root
 try {
   Write-Host "Installing dependencies..."
   npm install
+  if ($LASTEXITCODE -ne 0) {
+    throw "npm install failed with exit code $LASTEXITCODE"
+  }
 
   & "$PSScriptRoot\stage-webos.ps1" -SkipInstall
 

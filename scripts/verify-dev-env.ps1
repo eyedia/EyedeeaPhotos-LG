@@ -29,75 +29,75 @@ function Get-SimVersionFromEnvFiles {
 $node = Get-Command node -ErrorAction SilentlyContinue
 if ($node) {
   $nodeVer = & node -v
-  Write-Host "[OK]   Node $nodeVer"
+  Write-Host ('[OK]   Node ' + $nodeVer)
   $major = 0
   if ($nodeVer -match 'v?(\d+)') { $major = [int]$matches[1] }
   if ($major -lt 18) {
-    Write-Host "[FAIL] Node $major is too old for Vite — need Node 18+. SDK CLI\bin may be shadowing system Node."
+    Write-Host ('[FAIL] Node ' + $major + ' is too old for Vite - need Node 18+. SDK CLI\bin may be shadowing system Node.')
     $ok = $false
   }
 } else {
-  Write-Host "[FAIL] Node not found"
+  Write-Host '[FAIL] Node not found'
   $ok = $false
 }
 
 $npm = Get-Command npm -ErrorAction SilentlyContinue
 if ($npm) {
   $npmVer = & npm -v
-  Write-Host "[OK]   npm $npmVer"
+  Write-Host ('[OK]   npm ' + $npmVer)
 } else {
-  Write-Host "[FAIL] npm not found"
+  Write-Host '[FAIL] npm not found'
   $ok = $false
 }
 
 $ares = Resolve-WebOSCliExe "ares"
 if ($ares) {
   $aresVer = & $ares -V 2>&1 | Out-String
-  Write-Host "[OK]   $($aresVer.Trim())"
+  Write-Host ('[OK]   ' + $aresVer.Trim())
 } else {
-  Write-Host "[FAIL] ares CLI not found - install webOS TV CLI (see docs/LG_PREREQUISITES.md)"
+  Write-Host '[FAIL] ares CLI not found - install webOS TV CLI (see docs/LG_PREREQUISITES.md)'
   $ok = $false
 }
 
 foreach ($cmd in @("ares-package", "ares-install", "ares-launch")) {
   $found = Resolve-WebOSCliExe $cmd
   if ($found) {
-    Write-Host "[OK]   $cmd available (LG SDK)"
+    Write-Host ('[OK]   ' + $cmd + ' available (LG SDK)')
   } else {
-    Write-Host "[WARN] $cmd not found - required for packaging/signing/TV install"
+    Write-Host ('[WARN] ' + $cmd + ' not found - required for packaging/signing/TV install')
   }
 }
 
 $sdkHome = $env:LG_WEBOS_TV_SDK_HOME
 if ($sdkHome -and (Test-Path $sdkHome)) {
-  Write-Host "[OK]   LG_WEBOS_TV_SDK_HOME = $sdkHome"
+  Write-Host ('[OK]   LG_WEBOS_TV_SDK_HOME = ' + $sdkHome)
   $sdkJs = @(
     (Join-Path $sdkHome "APIs\webOSTV.js\webOSTV.js"),
     (Join-Path $sdkHome "SDK\APIs\webOSTV.js\webOSTV.js")
   ) | Where-Object { Test-Path $_ } | Select-Object -First 1
   if ($sdkJs) {
-    Write-Host "[OK]   Official webOSTV.js found in SDK"
+    Write-Host '[OK]   Official webOSTV.js found in SDK'
   } else {
-    Write-Host "[WARN] webOSTV.js not found under SDK - production builds will use stub"
+    Write-Host '[WARN] webOSTV.js not found under SDK - production builds will use stub'
   }
 } else {
-  Write-Host "[WARN] LG_WEBOS_TV_SDK_HOME not set - see docs/LG_PREREQUISITES.md"
+  Write-Host '[WARN] LG_WEBOS_TV_SDK_HOME not set - see docs/LG_PREREQUISITES.md'
 }
 
 $cert = $env:LG_WEBOS_TV_CERT
 $defaultKey = Join-Path $Root "certs\developer.pem"
 $defaultCrt = Join-Path $Root "certs\developer.crt"
 if ($cert -and (Test-Path $cert)) {
-  Write-Host "[OK]   LG_WEBOS_TV_CERT configured (private key)"
+  Write-Host '[OK]   LG_WEBOS_TV_CERT configured (private key)'
 } elseif (Test-Path $defaultKey) {
-  Write-Host "[OK]   certs/developer.pem present"
+  Write-Host '[OK]   certs/developer.pem present'
 } else {
-  Write-Host "[INFO] No developer private key found - download from Seller Lounge before signed build"
+  Write-Host '[INFO] No developer private key found - download from Seller Lounge before signed build'
 }
 if ((Test-Path $defaultCrt) -or $env:LG_WEBOS_TV_CERT_CRT) {
-  Write-Host "[OK]   developer.crt configured for signed packaging"
+  Write-Host '[OK]   developer.crt configured for signed packaging'
 } elseif ($cert -or (Test-Path $defaultKey)) {
-  Write-Host "[WARN] developer.crt missing - signed build needs both .pem and .crt"
+  Write-Host '[WARN] developer.crt missing - signed build needs both .pem and .crt'
 }
 
 $simVersion = Get-SimVersionFromEnvFiles
@@ -105,24 +105,24 @@ Write-Host ('[INFO] WEBOS_SIM_VERSION = ' + $simVersion)
 
 $nodeModules = Join-Path $Root "node_modules"
 if (Test-Path $nodeModules) {
-  Write-Host "[OK]   node_modules present"
+  Write-Host '[OK]   node_modules present'
 } else {
-  Write-Host "[WARN] node_modules missing - run npm install"
+  Write-Host '[WARN] node_modules missing - run npm install'
 }
 
 $icon = Join-Path $Root "public\icon.png"
 if (Test-Path $icon) {
-  Write-Host "[OK]   public/icon.png exists"
+  Write-Host '[OK]   public/icon.png exists'
 } else {
-  Write-Host "[WARN] public/icon.png missing - run npm run icons"
+  Write-Host '[WARN] public/icon.png missing - run npm run icons'
 }
 
 $dist = Join-Path $Root "dist"
 $appinfo = Join-Path $dist "appinfo.json"
 if (Test-Path $appinfo) {
-  Write-Host "[OK]   dist/ is staged (appinfo.json present)"
+  Write-Host '[OK]   dist/ is staged (appinfo.json present)'
 } else {
-  Write-Host "[INFO] dist/ not staged yet - run npm run stage:webos"
+  Write-Host '[INFO] dist/ not staged yet - run npm run stage:webos'
 }
 
 Write-Host ""
