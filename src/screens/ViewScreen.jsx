@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Menu, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, Menu, Settings } from 'lucide-react';
+import ViewPhotoInfoPanel from '../components/ViewPhotoInfoPanel';
 import { fetchAuthenticatedBlob, viewApi } from '../services/api';
 import { getCurrentWeather } from '../services/weatherService';
 import { useAuthStore } from '../stores/authStore';
@@ -113,6 +114,11 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
   const [showControls, setShowControls] = useState(false);
   const [showMetadata, setShowMetadata] = useState(true);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(false);
+  const [infoMetadata, setInfoMetadata] = useState(null);
+  const [infoPeoplePreview, setInfoPeoplePreview] = useState(null);
+  const [isInfoMetadataLoading, setIsInfoMetadataLoading] = useState(false);
+  const [infoMetadataError, setInfoMetadataError] = useState('');
   const [config, setConfig] = useState({ refresh_client: DEFAULT_REFRESH_CLIENT_SECONDS });
   const [activeScope, setActiveScope] = useState('global');
   const [weather, setWeather] = useState(null);
@@ -134,10 +140,15 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
   const lastViewedPhotoIdRef = useRef(null);
   const prevOptimalSizeRef = useRef(optimalSize);
   const photosRef = useRef(photos);
+  const isInfoPanelOpenRef = useRef(false);
 
   useEffect(() => {
     photosRef.current = photos;
   }, [photos]);
+
+  useEffect(() => {
+    isInfoPanelOpenRef.current = isInfoPanelOpen;
+  }, [isInfoPanelOpen]);
 
   const revokeDisplayUrl = useCallback((url) => {
     if (typeof url === 'string' && url.startsWith('blob:')) {
@@ -411,7 +422,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
       autoRefreshTimerRef.current = null;
     }
 
-    if (config?.refresh_client > 0 && householdId && !isPanelOpen) {
+    if (config?.refresh_client > 0 && householdId && !isPanelOpen && !isInfoPanelOpen) {
       autoRefreshTimerRef.current = setInterval(checkForNewPhoto, config.refresh_client * 1000);
     }
 
@@ -420,7 +431,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
         clearInterval(autoRefreshTimerRef.current);
       }
     };
-  }, [checkForNewPhoto, config, householdId, isPanelOpen]);
+  }, [checkForNewPhoto, config, householdId, isPanelOpen, isInfoPanelOpen]);
 
   useEffect(() => {
     const weatherTimer = setInterval(() => {
@@ -592,7 +603,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
 
   const showControlsTemporarily = useCallback(() => {
     setShowControls(true);
-    if (isPanelOpen) return;
+    if (isPanelOpen || isInfoPanelOpenRef.current) return;
     if (controlsHideTimerRef.current) clearTimeout(controlsHideTimerRef.current);
     controlsHideTimerRef.current = setTimeout(() => {
       setShowControls(false);
@@ -600,11 +611,32 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
     }, CONTROLS_HIDE_DELAY_MS);
   }, [isPanelOpen]);
 
+  const openInfoPanel = useCallback(() => {
+    if (HISTORY_PANEL_ENABLED) setIsPanelOpen(false);
+    setIsInfoPanelOpen(true);
+    isInfoPanelOpenRef.current = true;
+    setShowControls(true);
+    if (controlsHideTimerRef.current) clearTimeout(controlsHideTimerRef.current);
+  }, []);
+
+  const closeInfoPanel = useCallback(() => {
+    setIsInfoPanelOpen(false);
+    isInfoPanelOpenRef.current = false;
+    showControlsTemporarily();
+  }, [showControlsTemporarily]);
+
+  const toggleInfoPanel = useCallback(() => {
+    if (isInfoPanelOpenRef.current) closeInfoPanel();
+    else openInfoPanel();
+  }, [closeInfoPanel, openInfoPanel]);
+
   const toggleHistoryPanel = useCallback(() => {
     if (!HISTORY_PANEL_ENABLED) return;
     setIsPanelOpen((open) => {
       const next = !open;
       if (next) {
+        setIsInfoPanelOpen(false);
+        isInfoPanelOpenRef.current = false;
         setShowControls(true);
         if (controlsHideTimerRef.current) clearTimeout(controlsHideTimerRef.current);
       } else {
@@ -614,9 +646,82 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
     });
   }, [showControlsTemporarily]);
 
+  const visiblePhotoId = photos[currentIndex]?.photo_id;
+
+  useEffect(() => {
+    setInfoMetadata(null);
+    setInfoPeoplePreview(null);
+    setInfoMetadataError('');
+  }, [visiblePhotoId]);
+
+  useEffect(() => {
+    if (!isInfoPanelOpen || !householdId || !visiblePhotoId) {
+      return undefined;
+    }
+
+    const photo = photosRef.current.find(
+      (item) => String(item?.photo_id) === String(visiblePhotoId),
+    ) || photosRef.current[currentIndex];
+    const photoId = visiblePhotoId;
+    let cancelled = false;
+
+    const loadInfo = async () => {
+      setIsInfoMetadataLoading(true);
+      setInfoMetadataError('');
+      try {
+        const [batchResponse, peopleResponse] = await Promise.all([
+          viewApi.getBatchMetadata(householdId, [photoId]),
+          viewApi.getPeoplePreview(householdId, [photoId], 5),
+        ]);
+        if (cancelled) return;
+
+        const loadedPhotoData = batchResponse?.photos?.[0]?.photo_data || photo?.photo_data || null;
+        if (loadedPhotoData) {
+          let address = loadedPhotoData.address;
+          if (typeof address === 'string') {
+            try {
+              address = JSON.parse(address);
+            } catch {
+              // keep string address
+            }
+          }
+          setInfoMetadata({ ...loadedPhotoData, address });
+        } else {
+          setInfoMetadata(photo?.photo_data || null);
+        }
+
+        const previewMap = peopleResponse?.preview || {};
+        const previewKey = Object.keys(previewMap).find(
+          (key) => String(key) === String(photoId),
+        );
+        setInfoPeoplePreview(
+          (previewKey && previewMap[previewKey])
+          || previewMap[photoId]
+          || { total: 0, items: [] },
+        );
+      } catch (error) {
+        if (!cancelled) {
+          console.error('[ViewScreen] Failed to load photo info:', error);
+          setInfoMetadata(photo?.photo_data || null);
+          setInfoPeoplePreview({ total: 0, items: [] });
+          setInfoMetadataError('Could not load full photo info.');
+        }
+      } finally {
+        if (!cancelled) setIsInfoMetadataLoading(false);
+      }
+    };
+
+    loadInfo();
+    return () => { cancelled = true; };
+  }, [currentIndex, householdId, isInfoPanelOpen, visiblePhotoId]);
+
   useEffect(() => {
     if (!onBackHandlerRef) return undefined;
     onBackHandlerRef.current = () => {
+      if (isInfoPanelOpen) {
+        closeInfoPanel();
+        return true;
+      }
       if (isPanelOpen) {
         setIsPanelOpen(false);
         return true;
@@ -626,7 +731,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
     return () => {
       onBackHandlerRef.current = null;
     };
-  }, [isPanelOpen, onBackHandlerRef]);
+  }, [closeInfoPanel, isInfoPanelOpen, isPanelOpen, onBackHandlerRef]);
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -650,25 +755,43 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
         showControlsTemporarily();
         return;
       }
-      if (isOk && HISTORY_PANEL_ENABLED) {
+      if (isOk) {
         event.preventDefault();
-        toggleHistoryPanel();
+        toggleInfoPanel();
         return;
       }
-      if (event.key === 'Escape' && HISTORY_PANEL_ENABLED && isPanelOpen) {
-        event.preventDefault();
-        setIsPanelOpen(false);
+      if (event.key === 'Escape') {
+        if (isInfoPanelOpen) {
+          event.preventDefault();
+          closeInfoPanel();
+          return;
+        }
+        if (HISTORY_PANEL_ENABLED && isPanelOpen) {
+          event.preventDefault();
+          setIsPanelOpen(false);
+        }
       }
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [canGoNext, canGoPrev, goNext, goPrev, isPanelOpen, showControlsTemporarily, toggleHistoryPanel]);
+  }, [
+    canGoNext,
+    canGoPrev,
+    closeInfoPanel,
+    goNext,
+    goPrev,
+    isInfoPanelOpen,
+    isPanelOpen,
+    showControlsTemporarily,
+    toggleInfoPanel,
+  ]);
 
   const currentPhoto = photos[currentIndex];
   const currentPhotoBlobUrl = currentPhoto ? blobUrlsRef.current.get(currentPhoto.photo_id) : null;
   const photoData = currentPhoto?.photo_data;
-  const controlsVisible = showControls || isPanelOpen;
+  const anyPanelOpen = isPanelOpen || isInfoPanelOpen;
+  const controlsVisible = showControls || anyPanelOpen;
   const currentPhotoHasError = currentPhoto && imageErrorPhotoId === currentPhoto.photo_id;
 
   if (isLoading) {
@@ -694,14 +817,14 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
 
   return (
     <div
-      className={`view-screen ${controlsVisible ? 'controls-visible' : ''} ${isPanelOpen ? 'panel-open' : ''}`}
+      className={`view-screen ${controlsVisible ? 'controls-visible' : ''} ${anyPanelOpen ? 'panel-open' : ''}`}
       onMouseMove={showControlsTemporarily}
       onClick={(event) => {
         if (event.target.closest('button')) return;
         showControlsTemporarily();
       }}
     >
-      <div className={`photo-stage ${isPanelOpen ? 'panel-open' : ''}`}>
+      <div className={`photo-stage ${anyPanelOpen ? 'panel-open' : ''}`}>
         {currentPhotoHasError ? (
           <div className="photo-loading">
             <p>Couldn&apos;t load photo</p>
@@ -763,6 +886,15 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
       </div>
 
       <div className={`view-controls-top ${controlsVisible ? 'visible' : ''}`}>
+        <button
+          type="button"
+          className={`view-icon-btn ${isInfoPanelOpen ? 'active' : ''}`}
+          onClick={toggleInfoPanel}
+          aria-label={isInfoPanelOpen ? 'Hide photo info' : 'Show photo info'}
+          title={isInfoPanelOpen ? 'Hide photo info' : 'Photo info'}
+        >
+          <Info size={32} />
+        </button>
         <button
           type="button"
           className="view-icon-btn"
@@ -842,6 +974,18 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
         </div>
       </aside>
       )}
+
+      <ViewPhotoInfoPanel
+        isOpen={isInfoPanelOpen}
+        onClose={closeInfoPanel}
+        householdId={householdId}
+        metadata={infoMetadata || currentPhoto?.photo_data || null}
+        peoplePreview={infoPeoplePreview}
+        isLoading={isInfoMetadataLoading}
+        loadError={infoMetadataError}
+        fallbackFilename={currentPhoto?.photo_data?.filename}
+        fallbackFolderName={currentPhoto?.photo_data?.folder_name}
+      />
     </div>
   );
 }

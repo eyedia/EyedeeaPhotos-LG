@@ -197,6 +197,18 @@ export const viewApi = {
       auth: true,
       body: { scope },
     }),
+
+  getPeoplePreview: (householdId, photoIds, limitPerPhoto = 5) =>
+    request(`/${householdId}/view/photos/people-preview`, {
+      method: 'POST',
+      auth: true,
+      body: { photo_ids: photoIds, limit_per_photo: limitPerPhoto },
+    }),
+};
+
+export const faceApi = {
+  getFaceThumbnailUrl: (householdId, sourceId, cropPath) =>
+    `${API_BASE}/${householdId}/face/faces/thumbnail?source_id=${encodeURIComponent(sourceId)}&crop_path=${encodeURIComponent(String(cropPath || '').replace(/\\/g, '/'))}`,
 };
 
 export const weatherApi = {

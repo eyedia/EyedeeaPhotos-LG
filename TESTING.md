@@ -121,18 +121,22 @@ Set the browser to **1920×1080** (Chrome DevTools → device toolbar) to match 
 ### Activation flow
 
 1. Note the device code on screen (format `XXX-XXX`)
-2. On phone or PC, open https://www.eyedeeaphotos.com/activate
+2. On phone or PC, open the URL shown on screen:
+   - `npm run dev` → `http://192.168.86.100:5174/activate` (Cloud web on your desktop LAN)
+   - `npm run dev:prod` / production → `https://www.eyedeeaphotos.com/activate`
 3. Sign in with a test account that has an active subscription
 4. Enter the device code — TV should switch to slideshow within ~10 seconds
+
+**Important:** Do not put `VITE_API_BASE_URL` / `VITE_ACTIVATE_URL` in `.env.local`. That file loads in every Vite mode and overrides `.env.development`. Use `.env.development.local` for LAN overrides instead.
 
 ### Local API override
 
 ```powershell
-$env:VITE_API_BASE_URL = "http://localhost:3001/api/v1"
+$env:VITE_API_BASE_URL = "http://192.168.86.100:5174/api/v1"
 npm run dev
 ```
 
-Or set `VITE_API_BASE_URL` in `.env.local`.
+Or set `VITE_API_BASE_URL` in `.env.development.local` (not `.env.local`).
 
 ---
 
