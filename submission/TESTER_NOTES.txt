@@ -8,7 +8,7 @@ Press Log out and confirm the TV returns to a new device code screen.
 
 Test account:
 Email: technoeyedia@gmail.com
-Password: Julia#555
+Password: 
 
 Notes:
 - Test account must have an active Eyedeea Photos subscription.
