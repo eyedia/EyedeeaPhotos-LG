@@ -2,16 +2,16 @@
 
 Complete on a **physical LG TV** in Developer Mode before LG Content Store submission. Simulator testing alone is not sufficient for LG QA.
 
-## Install signed build
+## Install build
 
 ```powershell
-powershell -File scripts/build-ipk.ps1 -Sign -CertPath path\to\developer.pem -DeviceName myTV
+powershell -File scripts/build-ipk.ps1 -DeviceName myTV
 ```
 
 Or install an existing IPK:
 
 ```powershell
-ares-install -d myTV dist-package\com.eyediatech.eyedeeaphotos_1.0.0_all.ipk
+ares-install -d myTV dist-package\com.eyediatech.eyedeeaphotos_1.0.3_all.ipk
 ares-launch -d myTV com.eyediatech.eyedeeaphotos
 ```
 
@@ -30,8 +30,10 @@ Mark each **PASS** before submit.
 
 ### Navigation
 
-- [ ] Magic Remote arrow keys: Previous / Next in slideshow
-- [ ] Back key: View → Settings → View (does not exit app unexpectedly)
+- [ ] Magic Remote arrow keys: Previous / Next in slideshow (when chrome hidden)
+- [ ] Up/Down: show controls; D-pad moves focus; OK activates focused control
+- [ ] Red color button: opens Settings (red hint under gear)
+- [ ] Back key: closes panels; from Settings returns to View (does not open Settings from View)
 - [ ] Settings shows signed-in user name and email
 - [ ] Log out returns to fresh device code screen
 

@@ -115,8 +115,11 @@ Set the browser to **1920×1080** (Chrome DevTools → device toolbar) to match 
 
 | Key | Action |
 |-----|--------|
-| Backspace / Escape | Remote Back |
-| Arrow Left / Right | Slideshow prev / next (on view screen) |
+| Backspace / Escape | Remote Back (close panel / leave Settings) |
+| Arrow Left / Right | Prev / next photo, or move focus when controls are focused |
+| Arrow Up / Down | Show controls and move focus |
+| Enter | Activate focused control |
+| R | Red button → Settings |
 
 ### Activation flow
 
@@ -165,19 +168,38 @@ If you prefer the simulator UI: **File → Launch App** and select the `dist/` f
 
 ---
 
-## 3. Physical TV (optional)
+## 3. Seller Lounge webOS Cloud Test Lab
+
+The in-browser “TV + remote” UI is **webOS Cloud Test Lab** (Applications → webOS Cloud Test Lab), not the local simulator.
+
+```powershell
+npm run package:webos
+```
+
+Upload `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_all.ipk` under **Applications → File Upload** (unsigned is correct — LG signs during store review).
+
+1. Fill English **App Title** and **App Description** (required before Cloud Lab).
+2. Reserve a device → at the slot time click **Start**.
+3. Finish or skip the TV’s initial setup — the app icon should appear on the **far right of Home**.
+4. Prefer the left-menu **Launch App** button over clicking the Home icon (Home often does nothing if install is incomplete).
+5. If launch fails: **Re-install** → wait for success → **Launch App** again.
+6. If you re-uploaded a new IPK mid-session: **File Change** on the lab session → **Re-install** → **Launch App**.
+
+Cloud Lab egress is Korea (`1.222.94.84`). Allowlist it if your API is geo-restricted; the device-code screen should still open without that.
+
+## 4. Physical TV (optional)
 
 1. Enable Developer Mode on the LG TV
 2. Register the device: `ares-setup-device`
-3. Build, sign, package, and optionally install:
+3. Build, package, and optionally install:
 
 ```powershell
-npm run package:webos:sign
+npm run package:webos
 # Or install directly:
-powershell -File scripts/build-ipk.ps1 -Sign -DeviceName myTV
+powershell -File scripts/build-ipk.ps1 -DeviceName myTV
 ```
 
-Output `.ipk` is written to `dist-package/`.
+Output `.ipk` is written to `dist-package/`. Optional legacy signing: `npm run package:webos:sign` (only if you still have `.pem`/`.crt` — not required for store upload).
 
 See [docs/LG_PREREQUISITES.md](docs/LG_PREREQUISITES.md) for certificate and Seller Lounge setup.
 
@@ -202,5 +224,5 @@ See [`submission/QA_CHECKLIST.md`](submission/QA_CHECKLIST.md) and [`submission/
 | `npm run stage:webos` | Build + copy webOS metadata into `dist/` |
 | `npm run sim` | Stage + launch on simulator |
 | `npm run sim:inspect` | Open simulator inspector |
-| `npm run package:webos` | Stage + create unsigned `.ipk` in `dist-package/` |
-| `npm run package:webos:sign` | Stage + package + sign IPK for Content Store |
+| `npm run package:webos` | Stage + create `.ipk` in `dist-package/` (use for store + Cloud Test Lab) |
+| `npm run package:webos:sign` | Same + optional legacy `.pem` signing (not required for Seller Lounge) |

@@ -1,6 +1,6 @@
 {
   "name": "eyedeea-photos-lg",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "Eyedeea Photos view-only app for LG webOS TV",
   "private": true,
   "type": "module",
@@ -26,9 +26,11 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@vitejs/plugin-legacy": "^8.2.1",
     "@vitejs/plugin-react": "^5.2.0",
     "sharp": "^0.35.2",
-    "vite": "^8.1.0"
+    "terser": "^5.49.0",
+    "vite": "^8.1.5"
   },
   "author": "Eyedeea Tech",
   "license": "UNLICENSED"

@@ -1,15 +1,16 @@
 # Ready to submit
 
-## Build signed IPK
+## Build IPK for Seller Lounge
 
 ```powershell
-npm run package:webos:sign
-# Or: powershell -File scripts/build-ipk.ps1 -Sign -CertPath path\to\developer.pem
+npm run package:webos
 ```
 
-Output: `dist-package/com.eyediatech.eyedeeaphotos_1.0.0_all.ipk` (signed)
+Output: `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_all.ipk`
 
-See [docs/LG_PREREQUISITES.md](../docs/LG_PREREQUISITES.md) for certificate setup.
+**Do not require signing for store upload.** LG signs during Content Store review. Optional legacy signing (`npm run package:webos:sign`) only applies if you still have `.pem`/`.crt` files — see [docs/LG_PREREQUISITES.md](../docs/LG_PREREQUISITES.md).
+
+Smoke-test the same IPK in Seller Lounge **webOS Cloud Test Lab** before submit (see [SELLER_LOUNGE_UPLOAD.md](./SELLER_LOUNGE_UPLOAD.md) and [TESTING.md](../TESTING.md) §3). Use **Launch App** / **Re-install** if the Home icon does nothing.
 
 ## Pre-submit checklists
 
@@ -21,7 +22,7 @@ See [docs/LG_PREREQUISITES.md](../docs/LG_PREREQUISITES.md) for certificate setu
 
 1. Sign in at https://seller.lgappstv.com
 2. Start **App Submission** (new app or update)
-3. Upload the **signed** `.ipk` from `dist-package/`
+3. Upload the `.ipk` from `dist-package/`
 4. Upload images from `submission/` (replace screenshot placeholders with real TV captures)
 5. Download and complete **Self Check-List** from Seller Lounge → attach in Test Info
 6. Download **UX Scenario** template → fill using `UX_SCENARIO_OUTLINE.md` → attach
@@ -33,7 +34,7 @@ See [docs/LG_PREREQUISITES.md](../docs/LG_PREREQUISITES.md) for certificate setu
 
 ```powershell
 ares-setup-device
-powershell -File scripts/build-ipk.ps1 -Sign -DeviceName myTV
+powershell -File scripts/build-ipk.ps1 -DeviceName myTV
 ```
 
 Generate branded assets:

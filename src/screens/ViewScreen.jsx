@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Info, Menu, Settings } from 'lucide-react';
 import ViewPhotoInfoPanel from '../components/ViewPhotoInfoPanel';
+import { isWebOSRedKey } from '../hooks/useWebOSRemote';
 import { fetchAuthenticatedBlob, viewApi } from '../services/api';
 import { getCurrentWeather } from '../services/weatherService';
 import { useAuthStore } from '../stores/authStore';
@@ -21,6 +22,47 @@ const HISTORY_DISPLAY_COUNT = 15;
 const DEFAULT_REFRESH_CLIENT_SECONDS = 30;
 /** Set true to show history icon, OK-to-toggle panel, and recent-history sidebar. */
 const HISTORY_PANEL_ENABLED = false;
+
+const REMOTE_FOCUS = {
+  info: 'info',
+  settings: 'settings',
+  history: 'history',
+  prev: 'prev',
+  next: 'next',
+};
+
+const REMOTE_FOCUS_NAV = {
+  [REMOTE_FOCUS.info]: {
+    left: REMOTE_FOCUS.prev,
+    right: REMOTE_FOCUS.next,
+    up: null,
+    down: REMOTE_FOCUS.settings,
+  },
+  [REMOTE_FOCUS.settings]: {
+    left: REMOTE_FOCUS.prev,
+    right: REMOTE_FOCUS.next,
+    up: REMOTE_FOCUS.info,
+    down: HISTORY_PANEL_ENABLED ? REMOTE_FOCUS.history : null,
+  },
+  [REMOTE_FOCUS.history]: {
+    left: REMOTE_FOCUS.prev,
+    right: REMOTE_FOCUS.next,
+    up: REMOTE_FOCUS.settings,
+    down: null,
+  },
+  [REMOTE_FOCUS.prev]: {
+    left: null,
+    right: REMOTE_FOCUS.next,
+    up: REMOTE_FOCUS.info,
+    down: null,
+  },
+  [REMOTE_FOCUS.next]: {
+    left: REMOTE_FOCUS.prev,
+    right: null,
+    up: REMOTE_FOCUS.info,
+    down: null,
+  },
+};
 
 function PhotoMetadataCaptions({ photoData }) {
   return (
@@ -112,6 +154,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showControls, setShowControls] = useState(false);
+  const [focusedControl, setFocusedControl] = useState(null);
   const [showMetadata, setShowMetadata] = useState(true);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(false);
@@ -140,11 +183,16 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
   const lastViewedPhotoIdRef = useRef(null);
   const prevOptimalSizeRef = useRef(optimalSize);
   const photosRef = useRef(photos);
+  const currentIndexRef = useRef(currentIndex);
   const isInfoPanelOpenRef = useRef(false);
 
   useEffect(() => {
     photosRef.current = photos;
   }, [photos]);
+
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
 
   useEffect(() => {
     isInfoPanelOpenRef.current = isInfoPanelOpen;
@@ -155,14 +203,6 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
       URL.revokeObjectURL(url);
     }
   }, []);
-
-  const clearBlobCache = useCallback(() => {
-    blobUrlsRef.current.forEach((url) => revokeDisplayUrl(url));
-    blobUrlsRef.current.clear();
-    preloadedUrlsRef.current.clear();
-    setImageErrorPhotoId(null);
-    triggerBlobUpdate();
-  }, [revokeDisplayUrl]);
 
   const setDisplayUrl = useCallback((photoId, url) => {
     const previous = blobUrlsRef.current.get(photoId);
@@ -329,22 +369,48 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
   const rotateToServerPhoto = useCallback(
     async (serverPhotoId) => {
       if (!serverPhotoId || !householdId) return;
-      lastServerPhotoIdRef.current = serverPhotoId;
 
       try {
         const batchResponse = await viewApi.getBatchMetadata(householdId, [serverPhotoId]);
         const newPhoto = batchResponse?.photos?.[0];
-        if (!newPhoto) return;
+        if (!newPhoto?.photo_url) return;
 
+        // Preload blob before switching so the UI never shows “Loading photo…”
+        if (!blobUrlsRef.current.has(serverPhotoId)) {
+          const urlWithSize = addSizeParam(newPhoto.photo_url, optimalSize);
+          try {
+            preloadedUrlsRef.current.add(serverPhotoId);
+            const blob = await fetchAuthenticatedBlob(urlWithSize);
+            setDisplayUrl(serverPhotoId, URL.createObjectURL(blob));
+          } catch (error) {
+            if (error?.status === 401) {
+              preloadedUrlsRef.current.delete(serverPhotoId);
+              handleApiAuthFailure(error);
+              return;
+            }
+            console.warn('Authenticated photo fetch failed; falling back to direct URL', {
+              photoId: serverPhotoId,
+              url: urlWithSize,
+              error,
+            });
+            setDisplayUrl(serverPhotoId, urlWithSize);
+          }
+        }
+
+        if (!blobUrlsRef.current.has(serverPhotoId)) {
+          // Keep the current photo on screen; retry on next refresh tick
+          return;
+        }
+
+        lastServerPhotoIdRef.current = serverPhotoId;
         setPhotos((prev) => [newPhoto, ...prev.slice(0, DEFAULT_QUEUE_LIMIT - 1)]);
         setCurrentIndex(0);
         setHistory((prev) => [newPhoto, ...prev.slice(0, 11)]);
-        preloadPhotos([newPhoto], true);
       } catch (error) {
         handleApiAuthFailure(error);
       }
     },
-    [handleApiAuthFailure, householdId, preloadPhotos]
+    [handleApiAuthFailure, householdId, optimalSize, setDisplayUrl]
   );
 
   const checkForNewPhoto = useCallback(async () => {
@@ -422,7 +488,9 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
       autoRefreshTimerRef.current = null;
     }
 
-    if (config?.refresh_client > 0 && householdId && !isPanelOpen && !isInfoPanelOpen) {
+    // Keep advancing while the info panel is open (OK toggle). Only pause for
+    // the history side panel so browsing recent photos is not interrupted.
+    if (config?.refresh_client > 0 && householdId && !isPanelOpen) {
       autoRefreshTimerRef.current = setInterval(checkForNewPhoto, config.refresh_client * 1000);
     }
 
@@ -431,7 +499,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
         clearInterval(autoRefreshTimerRef.current);
       }
     };
-  }, [checkForNewPhoto, config, householdId, isPanelOpen, isInfoPanelOpen]);
+  }, [checkForNewPhoto, config, householdId, isPanelOpen]);
 
   useEffect(() => {
     const weatherTimer = setInterval(() => {
@@ -526,8 +594,25 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
       const newSize = getOptimalVariantSize();
       if (newSize !== prevOptimalSizeRef.current) {
         prevOptimalSizeRef.current = newSize;
+
+        const keepId = photosRef.current[currentIndexRef.current]?.photo_id;
+        const keepUrl = keepId != null ? blobUrlsRef.current.get(keepId) : null;
+
+        blobUrlsRef.current.forEach((url, id) => {
+          if (String(id) !== String(keepId)) {
+            revokeDisplayUrl(url);
+          }
+        });
+        blobUrlsRef.current.clear();
+        preloadedUrlsRef.current.clear();
+        setImageErrorPhotoId(null);
+
+        if (keepId != null && keepUrl) {
+          blobUrlsRef.current.set(keepId, keepUrl);
+        }
+
         setOptimalSize(newSize);
-        clearBlobCache();
+        triggerBlobUpdate();
         if (photosRef.current.length > 0) {
           preloadPhotos(photosRef.current, false);
         }
@@ -538,7 +623,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [clearBlobCache, preloadPhotos]);
+  }, [preloadPhotos, revokeDisplayUrl]);
 
   useEffect(
     () => () => {
@@ -607,6 +692,37 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
     if (controlsHideTimerRef.current) clearTimeout(controlsHideTimerRef.current);
     controlsHideTimerRef.current = setTimeout(() => {
       setShowControls(false);
+      setFocusedControl(null);
+      controlsHideTimerRef.current = null;
+    }, CONTROLS_HIDE_DELAY_MS);
+  }, [isPanelOpen]);
+
+  const revealControlsWithFocus = useCallback((initialFocus) => {
+    setFocusedControl(initialFocus);
+    setShowControls(true);
+    if (isPanelOpen || isInfoPanelOpenRef.current) return;
+    if (controlsHideTimerRef.current) clearTimeout(controlsHideTimerRef.current);
+    controlsHideTimerRef.current = setTimeout(() => {
+      setShowControls(false);
+      setFocusedControl(null);
+      controlsHideTimerRef.current = null;
+    }, CONTROLS_HIDE_DELAY_MS);
+  }, [isPanelOpen]);
+
+  const moveRemoteFocus = useCallback((direction) => {
+    setFocusedControl((current) => {
+      const from = current || REMOTE_FOCUS.info;
+      const next = REMOTE_FOCUS_NAV[from]?.[direction];
+      if (!next) return from;
+      if (next === REMOTE_FOCUS.history && !HISTORY_PANEL_ENABLED) return from;
+      return next;
+    });
+    setShowControls(true);
+    if (isPanelOpen || isInfoPanelOpenRef.current) return;
+    if (controlsHideTimerRef.current) clearTimeout(controlsHideTimerRef.current);
+    controlsHideTimerRef.current = setTimeout(() => {
+      setShowControls(false);
+      setFocusedControl(null);
       controlsHideTimerRef.current = null;
     }, CONTROLS_HIDE_DELAY_MS);
   }, [isPanelOpen]);
@@ -645,6 +761,28 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
       return next;
     });
   }, [showControlsTemporarily]);
+
+  const activateFocusedControl = useCallback(() => {
+    switch (focusedControl) {
+      case REMOTE_FOCUS.prev:
+        goPrev();
+        return true;
+      case REMOTE_FOCUS.next:
+        goNext();
+        return true;
+      case REMOTE_FOCUS.info:
+        toggleInfoPanel();
+        return true;
+      case REMOTE_FOCUS.settings:
+        onOpenSettings();
+        return true;
+      case REMOTE_FOCUS.history:
+        toggleHistoryPanel();
+        return true;
+      default:
+        return false;
+    }
+  }, [focusedControl, goNext, goPrev, onOpenSettings, toggleHistoryPanel, toggleInfoPanel]);
 
   const visiblePhotoId = photos[currentIndex]?.photo_id;
 
@@ -737,29 +875,57 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
     const onKeyDown = (event) => {
       const isLeft = event.key === 'ArrowLeft' || event.keyCode === 37;
       const isRight = event.key === 'ArrowRight' || event.keyCode === 39;
+      const isUp = event.key === 'ArrowUp' || event.keyCode === 38;
+      const isDown = event.key === 'ArrowDown' || event.keyCode === 40;
       const isOk =
         event.key === 'Enter'
         || event.key === 'NumpadEnter'
         || event.keyCode === 13
         || event.keyCode === 417;
 
-      if (isLeft && canGoPrev) {
+      if (isWebOSRedKey(event)) {
         event.preventDefault();
-        goPrev();
-        showControlsTemporarily();
+        onOpenSettings();
         return;
       }
-      if (isRight && canGoNext) {
+
+      if (photosRef.current.length === 0) return;
+
+      if (isUp || isDown) {
         event.preventDefault();
-        goNext();
-        showControlsTemporarily();
+        if (!focusedControl) {
+          revealControlsWithFocus(isUp ? REMOTE_FOCUS.info : REMOTE_FOCUS.settings);
+        } else {
+          moveRemoteFocus(isUp ? 'up' : 'down');
+        }
         return;
       }
+
+      if (isLeft || isRight) {
+        event.preventDefault();
+        if (HISTORY_PANEL_ENABLED && isPanelOpen) {
+          setIsPanelOpen(false);
+          return;
+        }
+        if (focusedControl) {
+          moveRemoteFocus(isLeft ? 'left' : 'right');
+          return;
+        }
+        if (isLeft) goPrev();
+        else goNext();
+        return;
+      }
+
       if (isOk) {
         event.preventDefault();
-        toggleInfoPanel();
+        if (focusedControl) {
+          activateFocusedControl();
+        } else {
+          toggleInfoPanel();
+        }
         return;
       }
+
       if (event.key === 'Escape') {
         if (isInfoPanelOpen) {
           event.preventDefault();
@@ -776,14 +942,16 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [
-    canGoNext,
-    canGoPrev,
+    activateFocusedControl,
     closeInfoPanel,
+    focusedControl,
     goNext,
     goPrev,
     isInfoPanelOpen,
     isPanelOpen,
-    showControlsTemporarily,
+    moveRemoteFocus,
+    onOpenSettings,
+    revealControlsWithFocus,
     toggleInfoPanel,
   ]);
 
@@ -888,7 +1056,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
       <div className={`view-controls-top ${controlsVisible ? 'visible' : ''}`}>
         <button
           type="button"
-          className={`view-icon-btn ${isInfoPanelOpen ? 'active' : ''}`}
+          className={`view-icon-btn ${isInfoPanelOpen ? 'active' : ''} ${focusedControl === REMOTE_FOCUS.info ? 'is-focused' : ''}`}
           onClick={toggleInfoPanel}
           aria-label={isInfoPanelOpen ? 'Hide photo info' : 'Show photo info'}
           title={isInfoPanelOpen ? 'Hide photo info' : 'Photo info'}
@@ -897,17 +1065,18 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
         </button>
         <button
           type="button"
-          className="view-icon-btn"
+          className={`view-icon-btn view-settings-btn ${focusedControl === REMOTE_FOCUS.settings ? 'is-focused' : ''}`}
           onClick={onOpenSettings}
-          aria-label="Settings"
-          title="Settings"
+          aria-label="Settings (Red remote button)"
+          title="Settings — press Red on remote"
         >
           <Settings size={32} />
+          <span className="view-settings-red-hint" aria-hidden="true" />
         </button>
         {HISTORY_PANEL_ENABLED && (
           <button
             type="button"
-            className="view-icon-btn"
+            className={`view-icon-btn ${focusedControl === REMOTE_FOCUS.history ? 'is-focused' : ''}`}
             onClick={toggleHistoryPanel}
             aria-label="Toggle history panel"
             title="History"
@@ -919,7 +1088,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
 
       <button
         type="button"
-        className={`view-nav-btn view-nav-prev ${controlsVisible ? 'visible' : ''}`}
+        className={`view-nav-btn view-nav-prev ${controlsVisible ? 'visible' : ''} ${focusedControl === REMOTE_FOCUS.prev ? 'is-focused' : ''}`}
         onClick={goPrev}
         disabled={!canGoPrev}
         aria-label="Previous photo"
@@ -928,7 +1097,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
       </button>
       <button
         type="button"
-        className={`view-nav-btn view-nav-next ${controlsVisible ? 'visible' : ''}`}
+        className={`view-nav-btn view-nav-next ${controlsVisible ? 'visible' : ''} ${focusedControl === REMOTE_FOCUS.next ? 'is-focused' : ''}`}
         onClick={goNext}
         disabled={!canGoNext}
         aria-label="Next photo"

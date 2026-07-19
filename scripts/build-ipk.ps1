@@ -73,7 +73,9 @@ try {
   New-Item -ItemType Directory -Force -Path $PackageDir | Out-Null
 
   $shouldSign = $Sign -or $CertPath
-  $packageArgs = @("-o", $PackageDir)
+  # Vite already minifies; ares-package's minifier often fails on legacy/SystemJS bundles
+  # and can leave a broken IPK while still exiting non-fatally.
+  $packageArgs = @("-o", $PackageDir, "--no-minify")
 
   if ($shouldSign) {
     $privateKey = Resolve-PrivateKeyPath -ExplicitPath $CertPath

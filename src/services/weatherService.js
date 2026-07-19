@@ -75,20 +75,13 @@ function getAnyStaleWeatherCache() {
   return null;
 }
 
-function shouldSkipBrowserGeolocation() {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  return Boolean(window.webOS?.platform?.tv);
-}
-
+/**
+ * Request browser geolocation coordinates (including on webOS TV).
+ * Returns { lat, lon } or null if unavailable / denied / timed out.
+ */
 function getBrowserCoords() {
-  if (shouldSkipBrowserGeolocation()) {
-    return Promise.resolve(null);
-  }
-
   return new Promise((resolve) => {
-    if (!navigator.geolocation) {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
       resolve(null);
       return;
     }
@@ -134,10 +127,19 @@ export async function getCurrentWeather() {
     }
 
     if (data?.error) {
+      console.warn('[weather] API returned error; using stale cache if available', {
+        error: data.error,
+        message: data.message,
+        hadCoords: Boolean(coords),
+      });
       return staleFallback;
     }
 
     if (!isValidWeatherPayload(data)) {
+      console.warn('[weather] Invalid payload; using stale cache if available', {
+        hadCoords: Boolean(coords),
+        data,
+      });
       return staleFallback;
     }
 
@@ -147,7 +149,8 @@ export async function getCurrentWeather() {
     writePersistedWeatherCache(data, weatherCacheRef.timestamp, cacheKey);
 
     return data;
-  } catch {
+  } catch (error) {
+    console.warn('[weather] Fetch failed; using stale cache if available', error);
     return getAnyStaleWeatherCache();
   }
 }

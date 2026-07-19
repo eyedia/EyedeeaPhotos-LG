@@ -13,7 +13,7 @@ npm run submission-assets
 
 ## Binary
 
-- [ ] `../dist-package/com.eyediatech.eyedeeaphotos_1.0.0_all.ipk` (signed)
+- [ ] `../dist-package/com.eyediatech.eyedeeaphotos_1.0.3_all.ipk` (from `npm run package:webos`)
 
 ## Images
 

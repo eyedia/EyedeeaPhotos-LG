@@ -53,7 +53,7 @@ Output `.ipk` is written to `dist-package/`.
 |--------|------|
 | Device code | Fresh launch or after logout |
 | Slideshow view | After successful device activation |
-| Settings | Back from view, or Settings button; shows user + logout |
+| Settings | Red remote button, or Settings gear (focus + OK / pointer); shows user + logout |
 
 The app never loads the marketing home page, library, or other web routes.
 

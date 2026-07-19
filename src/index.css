@@ -47,13 +47,21 @@ button {
 
 .device-code-card,
 .settings-card {
-  width: min(920px, 92vw);
-  padding: 3.5rem 4rem;
   border-radius: 24px;
   background: rgba(15, 23, 42, 0.92);
   border: 1px solid rgba(148, 163, 184, 0.18);
   box-shadow: 0 30px 80px rgba(2, 6, 23, 0.55);
   text-align: center;
+}
+
+.device-code-card {
+  width: min(920px, 92vw);
+  padding: 3.5rem 4rem;
+}
+
+.settings-card {
+  width: min(640px, 88vw);
+  padding: 2.25rem 2.5rem 2rem;
 }
 
 .app-logo {
@@ -68,6 +76,10 @@ button {
   margin: 0 0 0.35rem;
   font-size: 3.35rem;
   font-weight: 700;
+}
+
+.settings-card h1 {
+  font-size: 2.75rem;
 }
 
 .app-tagline {
@@ -94,6 +106,12 @@ button {
   color: #cbd5e1;
   font-size: 1.75rem;
   line-height: 1.6;
+}
+
+.settings-subtitle {
+  margin: 0 0 1.25rem;
+  font-size: 1.35rem;
+  line-height: 1.45;
 }
 
 .code-display {
@@ -338,33 +356,33 @@ button {
 }
 
 .settings-screen {
-  padding: 3rem;
+  padding: 2rem;
 }
 
 .settings-list {
-  margin: 2rem 0;
+  margin: 0.75rem 0 0;
   text-align: left;
-  font-size: 1.35rem;
+  font-size: 1.25rem;
 }
 
 .settings-row {
   display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 1.25rem;
-  padding: 1.35rem 0;
+  grid-template-columns: 140px 1fr;
+  gap: 1rem;
+  padding: 0.9rem 0;
   border-bottom: 1px solid rgba(148, 163, 184, 0.15);
 }
 
 .settings-row dt {
   color: #94a3b8;
   font-weight: 600;
-  font-size: 1.25rem;
+  font-size: 1.15rem;
 }
 
 .settings-row dd {
   margin: 0;
   color: #f8fafc;
-  font-size: 1.45rem;
+  font-size: 1.3rem;
   word-break: break-word;
 }
 
@@ -376,16 +394,16 @@ button {
   display: flex;
   justify-content: center;
   gap: 1rem;
-  margin-top: 2rem;
+  margin-top: 1.5rem;
 }
 
 .settings-actions .btn-settings {
   background: #334155;
   color: #e2e8f0;
   border: 2px solid rgba(148, 163, 184, 0.25);
-  min-width: 10rem;
-  padding: 1.1rem 2.1rem;
-  font-size: 1.35rem;
+  min-width: 9rem;
+  padding: 0.95rem 1.75rem;
+  font-size: 1.25rem;
 }
 
 .settings-actions .btn-settings.is-selected {
@@ -406,9 +424,17 @@ button {
 }
 
 .settings-hint {
-  margin-top: 1.5rem;
+  margin-top: 1.15rem;
   color: #94a3b8;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
+  line-height: 1.45;
+}
+
+.settings-version {
+  margin-top: 1rem;
+  color: #64748b;
+  font-size: 1rem;
+  text-align: center;
 }
 
 .view-screen {
@@ -744,7 +770,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .view-icon-btn:hover,
@@ -756,9 +782,30 @@ button {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
 }
 
-.view-icon-btn:focus-visible {
+.view-icon-btn:focus-visible,
+.view-icon-btn.is-focused,
+.view-nav-btn.is-focused:not(:disabled) {
   outline: 3px solid #38bdf8;
   outline-offset: 2px;
+  background: rgba(0, 0, 0, 0.85);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
+}
+
+.view-settings-btn {
+  flex-direction: column;
+  gap: 4px;
+  height: auto;
+  min-height: 58px;
+  padding: 8px 0 6px;
+}
+
+.view-settings-red-hint {
+  display: block;
+  width: 18px;
+  height: 5px;
+  border-radius: 2px;
+  background: #e11d48;
+  box-shadow: 0 0 6px rgba(225, 29, 72, 0.55);
 }
 
 .view-nav-btn {

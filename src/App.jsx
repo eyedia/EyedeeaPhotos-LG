@@ -46,10 +46,6 @@ export default function App() {
         setScreen(SCREENS.view);
         return true;
       }
-      if (screen === SCREENS.view) {
-        setScreen(SCREENS.settings);
-        return true;
-      }
       return false;
     }, [screen])
   );

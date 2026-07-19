@@ -4,24 +4,36 @@ Final submission checklist for [LG Seller Lounge](https://seller.lgappstv.com). 
 
 ## Before you upload
 
-- [ ] Signed IPK built: `npm run package:webos:sign` (or `build-ipk.ps1 -Sign`)
-- [ ] IPK path: `dist-package/com.eyediatech.eyedeeaphotos_1.0.0_all.ipk`
+- [ ] IPK built: `npm run package:webos` (unsigned — LG handles store signing)
+- [ ] IPK path: `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_all.ipk`
 - [ ] Real TV screenshots in `submission/screenshots/` (5 files)
 - [ ] Branded assets: `icon-400.jpg` (preferred) or `icon-400.png`, launcher, splash
 - [ ] Completed `self-checklist.xlsx` from Seller Lounge template
 - [ ] Completed `ux-scenario.pptx` from Seller Lounge template
 - [ ] QA test account credentials filled in `TESTER_NOTES.txt`
 
+## Cloud Test Lab (pre-submit smoke test)
+
+Before full App Submission, smoke-test the same IPK in **Applications → webOS Cloud Test Lab**:
+
+1. Upload the IPK under **Applications → File Upload**.
+2. Reserve a device; at the reservation time click **Start**.
+3. Finish or skip TV setup — app icon appears on the far right of Home.
+4. Use left-menu **Launch App** (do not rely only on clicking the Home icon).
+5. If nothing happens: **Re-install** → **Launch App**. After a re-upload: **File Change** → **Re-install** → **Launch App**.
+
+Expect the device-code screen. See [TESTING.md](../TESTING.md) §3 for details.
+
 ## App Submission wizard
 
 ### Step 1 — Binary
 
-Upload the **signed** `.ipk` from `dist-package/`.
+Upload the `.ipk` from `dist-package/` (built with `npm run package:webos`).
 
 | Field | Value |
 |-------|-------|
 | App ID | `com.eyediatech.eyedeeaphotos` |
-| Version | `1.0.0` (match `appinfo.json`) |
+| Version | `1.0.3` (match `appinfo.json`) |
 | Resolution | 1920×1080 |
 
 ### Step 2 — Images

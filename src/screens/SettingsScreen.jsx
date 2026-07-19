@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { APP_VERSION } from '../config';
 import { useAuthStore } from '../stores/authStore';
 import { useWebOSOkKey } from '../hooks/useWebOSRemote';
 
@@ -78,6 +79,7 @@ export default function SettingsScreen({ onBack, onLogout }) {
         </div>
 
         <p className="settings-hint">Logging out will require a new device code to sign in again.</p>
+        <p className="settings-version">Version {APP_VERSION}</p>
       </div>
     </div>
   );

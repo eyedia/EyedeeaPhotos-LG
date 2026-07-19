@@ -2,7 +2,7 @@
 
 App title: **Eyedeea Photos**  
 Platform: LG webOS TV  
-Version: 1.0.0
+Version: 1.0.3
 
 ---
 
@@ -25,10 +25,10 @@ Screenshot: capture device code screen from TV or simulator.
 |---|------------|-----------------|
 | 1 | Photo area | Full-screen family photo slideshow |
 | 2 | Metadata overlay | Album title, date, location at bottom |
-| 3 | Previous | Magic Remote left — previous photo |
-| 4 | Info | Toggle metadata visibility |
-| 5 | Settings | Opens settings screen |
-| 6 | Next | Magic Remote right — next photo |
+| 3 | Previous | Left (chrome hidden) or focus ◀ + OK |
+| 4 | Info | Focus info + OK, or pointer |
+| 5 | Settings | **Red** remote button (red bar under gear), or focus gear + OK |
+| 6 | Next | Right (chrome hidden) or focus ▶ + OK |
 
 Screenshot: capture slideshow with metadata visible.
 
@@ -63,6 +63,6 @@ Screenshot: capture screen after logout.
 - Activation happens on **web** at https://www.eyedeeaphotos.com/activate — the TV app only displays the code.
 - Subscription is required to activate; test account must have an active plan.
 - No in-app purchases or ads.
-- Back key: View ↔ Settings (does not open browser or web home).
+- Red remote button (or gear + OK): View → Settings; Back returns to View.
 
 Copy this content into the official LG UX Scenario PowerPoint template from Seller Lounge.

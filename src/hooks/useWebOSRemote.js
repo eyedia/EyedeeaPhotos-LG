@@ -26,6 +26,16 @@ export function useWebOSBackKey(onBack) {
   }, [onBack]);
 }
 
+/** Magic Remote red color button (and browser fallbacks for local testing). */
+export function isWebOSRedKey(event) {
+  return (
+    event.keyCode === 403
+    || event.key === 'ColorF0Red'
+    || event.key === 'r'
+    || event.key === 'R'
+  );
+}
+
 /**
  * Handle webOS Magic Remote OK / Enter key.
  */

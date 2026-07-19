@@ -1,6 +1,6 @@
 # LG Content Store — one-time setup
 
-Complete these steps before building a signed IPK for submission.
+Complete these steps before packaging an IPK for Seller Lounge / Content Store.
 
 ## 1. LG Seller Lounge account
 

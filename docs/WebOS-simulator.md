@@ -125,7 +125,7 @@ Repeat the same flow as browser testing (see [`TESTING.md`](../TESTING.md)):
 1. Device code appears on TV screen
 2. Activate at the configured `VITE_ACTIVATE_URL`
 3. Slideshow loads after activation
-4. Remote / keyboard: **Arrow Left/Right** (prev/next), **Back** (settings)
+4. Remote / keyboard: **Arrow Left/Right** (prev/next when chrome hidden), **Up/Down** (show + focus controls), **R** / Red (settings), **Enter** (activate focused control)
 
 Use the simulator remote control UI for D-pad navigation.
 

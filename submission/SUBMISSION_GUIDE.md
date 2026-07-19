@@ -47,7 +47,8 @@ Key flows to verify:
 - [ ] Settings shows signed-in user
 - [ ] Logout returns to device code
 - [ ] Magic Remote arrows work in slideshow
-- [ ] Back key: View → Settings → View (does not exit app unexpectedly)
+- [ ] Up/Down focus on-screen controls; OK activates; Red opens Settings
+- [ ] Back from Settings returns to View (Back does not open Settings)
 - [ ] Memory stable during 30+ minute slideshow
 
 ## 4. UX Scenario (PowerPoint)
@@ -102,7 +103,7 @@ Remove template instruction slides before upload.
 3. On a phone or computer, open https://www.eyedeeaphotos.com/activate
 4. Sign in with the test account below and enter the device code.
 5. Confirm the TV transitions to the photo slideshow within ~10 seconds.
-6. Press Back to open Settings — verify account name/email.
+6. Press Red on the remote (or focus the gear and press OK) to open Settings — verify account name/email.
 7. Press Log out — verify the TV shows a new device code.
 ```
 

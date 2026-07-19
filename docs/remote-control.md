@@ -4,9 +4,9 @@ This document describes how the **LG webOS Magic Remote** (and browser keyboard 
 
 Implementation lives in:
 
-- [`src/hooks/useWebOSRemote.js`](../src/hooks/useWebOSRemote.js) — shared Back / OK handlers
+- [`src/hooks/useWebOSRemote.js`](../src/hooks/useWebOSRemote.js) — shared Back / OK / Red helpers
 - [`src/App.jsx`](../src/App.jsx) — global Back routing between screens
-- [`src/screens/ViewScreen.jsx`](../src/screens/ViewScreen.jsx) — slideshow + history
+- [`src/screens/ViewScreen.jsx`](../src/screens/ViewScreen.jsx) — slideshow + remote focus
 - [`src/screens/SettingsScreen.jsx`](../src/screens/SettingsScreen.jsx) — settings actions
 
 ---
@@ -15,12 +15,15 @@ Implementation lives in:
 
 | Magic Remote | Typical key / keyCode | Used for |
 |--------------|----------------------|----------|
-| **Back** | `Backspace`, `Escape`, keyCode `461`, `10009` | Navigate back, close panels |
-| **OK** (center click) | `Enter`, keyCode `13`, `417` | Confirm selection, toggle history |
-| **Left** | `ArrowLeft`, keyCode `37` | Previous photo / switch settings button |
-| **Right** | `ArrowRight`, keyCode `39` | Next photo / switch settings button |
+| **Back** | `Backspace`, `Escape`, keyCode `461`, `10009` | Close panels; leave Settings → slideshow |
+| **OK** (center click) | `Enter`, keyCode `13`, `417` | Activate the focused on-screen control |
+| **Left / Right** | `ArrowLeft`/`ArrowRight`, `37`/`39` | Prev/next photo (chrome hidden) or move focus (chrome focused) |
+| **Up / Down** | `ArrowUp`/`ArrowDown`, `38`/`40` | Show on-screen controls and move focus between them |
+| **Red** | keyCode `403`, `ColorF0Red` (browser: `R`) | Open **Settings** |
 
 When testing in a desktop browser, use the keyboard column above. Set the viewport to **1920×1080** for TV layout.
+
+> **Note:** The Magic Remote system Settings (gear) key is owned by the OS and is not delivered to apps. In-app Settings is opened with the **Red** color button (hint shown under the gear icon) or by focusing the gear and pressing **OK**.
 
 ---
 
@@ -28,14 +31,16 @@ When testing in a desktop browser, use the keyboard column above. Set the viewpo
 
 ```
 Device activation  ──(sign in)──►  Slideshow (View)  ◄──►  Settings
-                                        │
-                                        └── History panel (overlay)
+                                        │                      ▲
+                                        │                      │
+                                        └── Info / History     Red / gear+OK
+                                            panel (overlay)
 ```
 
 | Current screen | Back button |
 |----------------|-------------|
-| **Slideshow** — history panel **open** | Closes history panel (stays on slideshow) |
-| **Slideshow** — history panel **closed** | Opens **Settings** |
+| **Slideshow** — info or history panel **open** | Closes panel (stays on slideshow) |
+| **Slideshow** — panels **closed** | Not handled by the app (platform / exit behavior) |
 | **Settings** | Returns to **Slideshow** |
 | **Device activation** | Not handled by the app (platform / browser default) |
 
@@ -43,36 +48,49 @@ Device activation  ──(sign in)──►  Slideshow (View)  ◄──►  Set
 
 ## View screen (slideshow)
 
-> **Note:** Recent History is temporarily disabled (`HISTORY_PANEL_ENABLED = false` in `ViewScreen.jsx`). The history icon and OK-to-toggle behavior are hidden until re-enabled.
+> **Note:** Recent History is temporarily disabled (`HISTORY_PANEL_ENABLED = false` in `ViewScreen.jsx`). The history icon is hidden until re-enabled.
 
-The main photo viewer. On-screen controls (gear, history menu, prev/next chevrons) appear briefly after mouse movement or when using Left/Right/OK; they also stay visible while the history panel is open.
+The main photo viewer. Photo advance is **server-driven** (`refresh_client`). On-screen controls (gear, info, prev/next chevrons) appear after mouse movement or **Up / Down** on the remote; they stay visible while a panel is open.
 
 ### Remote mapping
 
 | Button | Action |
 |--------|--------|
-| **Left** | Previous photo (disabled on the first photo) |
-| **Right** | Next photo (disabled on the last photo) |
-| **OK** | Toggle **Recent History** side panel open / closed |
-| **Back** | Close history if open; otherwise open **Settings** |
+| **Red** | Open **Settings** (anytime) |
+| **Up / Down** | Show controls and place / move **focus** on icons |
+| **Left / Right** | If a control is focused: move focus. Otherwise: previous / next photo |
+| **OK** | If a control is focused: activate it. Otherwise: toggle **photo info** |
+| **Back** | Close info/history panel if open; otherwise leave to platform |
+
+### Focusable controls (D-pad)
+
+| Control | Location | OK action |
+|---------|----------|-----------|
+| **Info** | Top right | Toggle photo info panel |
+| **Settings** (gear + red bar) | Top right | Open Settings |
+| **Previous** (◀) | Left edge | Previous photo |
+| **Next** (▶) | Right edge | Next photo |
+| **History** | Top right | Toggle history *(when enabled)* |
+
+Focused control gets a blue outline. The settings button always shows a small **red rectangle** under the gear to indicate the Red remote shortcut.
 
 ### On-screen buttons (mouse / pointer)
 
 | Control | Location | Action |
 |---------|----------|--------|
+| **Info** | Top right | Toggle photo info panel |
 | **Settings** (gear) | Top right | Open Settings |
-| **History** (menu icon) | Top right | Toggle Recent History panel |
-| **Previous** (◀) | Left edge | Previous photo |
-| **Next** (▶) | Right edge | Next photo |
+| **History** (menu icon) | Top right | Toggle Recent History panel *(when enabled)* |
+| **Previous** (◀) | Left edge | Previous photo in local queue |
+| **Next** (▶) | Right edge | Next photo in local queue |
 
-### History panel (when open)
+### History panel (when open / enabled)
 
 | Button | Action |
 |--------|--------|
-| **OK** | Close history panel |
 | **Back** | Close history panel |
 | **Escape** (browser) | Close history panel |
-| **Left / Right** | Still change slideshow photo (panel stays open) |
+| **Left / Right** | Close history panel |
 
 To jump to a specific recent photo, select a thumbnail with the **pointer** (Magic Remote point-and-click). Arrow-key navigation inside the thumbnail grid is not implemented.
 
@@ -81,7 +99,7 @@ To jump to a specific recent photo, select a thumbnail with the **pointer** (Mag
 | State | Remote |
 |-------|--------|
 | Loading viewer | No remote actions |
-| No photos available | Use on-screen **Settings** button (pointer) |
+| No photos available | **Red** opens Settings; or use on-screen **Settings** (pointer) |
 
 ---
 
@@ -133,9 +151,9 @@ When the API cannot be reached during activation, a **Reload** icon button is sh
 
 ### Slideshow
 
-| ← | → | OK | Back |
-|---|---|----|------|
-| Prev photo | Next photo | History on/off | Settings *(or close History)* |
+| ← / → | ↑ / ↓ | OK | Red | Back |
+|-------|-------|----|-----|------|
+| Photo prev/next *or* move focus | Show controls + move focus | Focused icon, else info | Settings | Close panel |
 
 ### Settings
 
@@ -147,6 +165,6 @@ When the API cannot be reached during activation, a **Reload** icon button is sh
 
 ## Testing tips
 
-- **Browser dev:** `npm run dev` or `npm run dev:prod` — use arrow keys, Enter, and Backspace/Escape.
+- **Browser dev:** `npm run dev` or `npm run dev:prod` — arrow keys for D-pad, Enter for OK, `R` for Red, Backspace/Escape for Back.
 - **webOS Simulator:** `npm run sim` — uses the staged `dist/` build; no hot reload. Re-run after code changes.
 - See [`TESTING.md`](../TESTING.md) for full browser vs simulator workflow.

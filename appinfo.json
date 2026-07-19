@@ -1,6 +1,6 @@
 {
   "id": "com.eyediatech.eyedeeaphotos",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "vendor": "Eyedeea Tech",
   "type": "web",
   "main": "index.html",
@@ -13,8 +13,5 @@
   "iconColor": "#F18A21",
   "requiredMemory": 50,
   "supportTouchMode": "virtual",
-  "transparent": false,
-  "accesses": [
-    "network.client"
-  ]
+  "transparent": false
 }

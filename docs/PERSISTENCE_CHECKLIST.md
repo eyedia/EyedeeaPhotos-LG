@@ -21,7 +21,7 @@ Mark each step **PASS** before submit.
 - [ ] **Force-close and relaunch** — press Home, reopen app → goes straight to slideshow (not device code)
 - [ ] **Reboot TV** — power cycle → reopen app → still signed in, slideshow loads
 - [ ] **Overnight idle** — leave TV off or app closed overnight → next day still signed in
-- [ ] **Settings after restart** — Back → Settings shows correct name and email
+- [ ] **Settings after restart** — Red → Settings shows correct name and email
 - [ ] **Logout only** — Log out in Settings → new device code appears (expected)
 - [ ] **Re-activate after logout** — activate again → slideshow works
 
