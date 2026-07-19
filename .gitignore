@@ -8,5 +8,7 @@ certs/
 .env
 .env.local
 .env.development.local
+.env.submission
 .sim-data.json
 .cli-page.html
+.screenshot-fixtures/

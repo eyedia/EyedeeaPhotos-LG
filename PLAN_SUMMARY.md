@@ -15,7 +15,7 @@ View-only LG Smart TV app: device-code sign-in on the TV, activation at `eyedeea
 - API: https://www.eyedeeaphotos.com/api/v1
 - Activate: https://www.eyedeeaphotos.com/activate
 - LG Seller Lounge: https://seller.lgappstv.com
-- Package: `dist-package/com.eyediatech.eyedeeaphotos_1.0.0_all.ipk`
+- Package: `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_1920x1080_all.ipk` + `_1280x720_all.ipk`
 
 ## Todo checklist
 
@@ -27,4 +27,5 @@ View-only LG Smart TV app: device-code sign-in on the TV, activation at `eyedeea
 - [x] webOS remote / back handling, 1080p layout
 - [x] Build script (`build-ipk.ps1`) and `.ipk` packaging
 - [x] Submission folder (guides, tester notes, placeholder assets)
-- [ ] Submit via LG Seller Lounge — see `submission/SUBMISSION_READY.md` (requires your test account + final upload)
+- [x] Submission packet ready (screenshots, self-checklist, UX scenario, wizard fill sheet)
+- [ ] Submit via LG Seller Lounge — follow `submission/WIZARD_FILL_SHEET.md` (needs your QA account password + Submit click)

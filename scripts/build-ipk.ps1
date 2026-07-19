@@ -2,7 +2,9 @@ param(
   [string]$OutputDir = "dist-package",
   [string]$DeviceName = "",
   [switch]$Sign,
-  [string]$CertPath = ""
+  [string]$CertPath = "",
+  # Seller Lounge needs both for FHD + UHD store coverage (default: both).
+  [string[]]$Resolutions = @("1920x1080", "1280x720")
 )
 
 $ErrorActionPreference = "Stop"
@@ -77,6 +79,8 @@ try {
   # and can leave a broken IPK while still exiting non-fatally.
   $packageArgs = @("-o", $PackageDir, "--no-minify")
 
+  $privateKey = $null
+  $certificate = $null
   if ($shouldSign) {
     $privateKey = Resolve-PrivateKeyPath -ExplicitPath $CertPath
     if (-not $privateKey -or -not (Test-Path $privateKey)) {
@@ -99,36 +103,72 @@ Both files come from LG Seller Lounge -> Development.
 "@
     }
 
-    Write-Host "Packaging signed IPK..."
+    Write-Host "Signing enabled"
     Write-Host "  Private key: $privateKey"
     Write-Host "  Certificate: $certificate"
     $packageArgs += @("-s", $privateKey, "-crt", $certificate)
-  } else {
-    Write-Host "Packaging IPK..."
   }
 
-  & $aresPackage @packageArgs $Stage
-
-  $ipk = Get-ChildItem -Path $PackageDir -Filter "*.ipk" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-  if (-not $ipk) {
-    throw "No IPK was created in $PackageDir"
+  $appInfoPath = Join-Path $Stage "appinfo.json"
+  if (-not (Test-Path $appInfoPath)) {
+    throw "Missing $appInfoPath - staging failed"
   }
 
-  Write-Host "Created package: $($ipk.FullName)"
+  $createdIpks = @()
+  foreach ($resolution in $Resolutions) {
+    if ($resolution -notmatch '^\d+x\d+$') {
+      throw "Invalid resolution '$resolution' (expected e.g. 1920x1080 or 1280x720)"
+    }
+
+    $appInfo = Get-Content -Raw -Path $appInfoPath | ConvertFrom-Json
+    $appInfo.resolution = $resolution
+    $appInfo | ConvertTo-Json -Depth 20 | Set-Content -Path $appInfoPath -Encoding utf8
+
+    Write-Host "Packaging IPK for resolution $resolution..."
+    & $aresPackage @packageArgs $Stage
+
+    $ipk = Get-ChildItem -Path $PackageDir -Filter "*.ipk" |
+      Where-Object { $_.Name -notmatch '_\d+x\d+_all\.ipk$' } |
+      Sort-Object LastWriteTime -Descending |
+      Select-Object -First 1
+    if (-not $ipk) {
+      throw "No IPK was created in $PackageDir for $resolution"
+    }
+
+    $newName = ($ipk.BaseName -replace '_all$', "_${resolution}_all") + $ipk.Extension
+    $renamed = Join-Path $PackageDir $newName
+    if (Test-Path $renamed) {
+      Remove-Item -Force $renamed
+    }
+    Move-Item -Force $ipk.FullName $renamed
+    $createdIpks += (Get-Item $renamed)
+    Write-Host "Created package: $renamed"
+  }
+
+  # Restore staged appinfo to the primary (UHD) resolution for local/dev installs.
+  $restore = Get-Content -Raw -Path (Join-Path $Root "appinfo.json") | ConvertFrom-Json
+  $restore | ConvertTo-Json -Depth 20 | Set-Content -Path $appInfoPath -Encoding utf8
 
   if (-not $shouldSign) {
     Write-Host ""
-    Write-Host "IPK ready for LG Content Store upload (no separate signing certificate needed)."
+    Write-Host "IPKs ready for LG Content Store upload (no separate signing certificate needed)."
+    Write-Host "Upload BOTH resolutions in Seller Lounge File Upload:"
+    Write-Host "  1920x1080 -> Ultra HD (UHD) models"
+    Write-Host "  1280x720  -> Full HD (FHD) models"
   } else {
-    Write-Host "Signed package ready for LG Content Store upload."
+    Write-Host "Signed packages ready for LG Content Store upload."
   }
 
   if ($DeviceName) {
     $aresInstall = Resolve-WebOSCliExe "ares-install"
     $aresLaunch = Resolve-WebOSCliExe "ares-launch"
-    if ($aresInstall -and $ipk) {
+    $installIpk = $createdIpks | Where-Object { $_.Name -match '_1920x1080_all\.ipk$' } | Select-Object -First 1
+    if (-not $installIpk) {
+      $installIpk = $createdIpks | Select-Object -First 1
+    }
+    if ($aresInstall -and $installIpk) {
       Write-Host "Installing to device $DeviceName..."
-      & $aresInstall -d $DeviceName $ipk.FullName
+      & $aresInstall -d $DeviceName $installIpk.FullName
       if ($aresLaunch) {
         & $aresLaunch -d $DeviceName com.eyediatech.eyedeeaphotos
       }

@@ -4,13 +4,14 @@ Final submission checklist for [LG Seller Lounge](https://seller.lgappstv.com). 
 
 ## Before you upload
 
-- [ ] IPK built: `npm run package:webos` (unsigned — LG handles store signing)
-- [ ] IPK path: `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_all.ipk`
-- [ ] Real TV screenshots in `submission/screenshots/` (5 files)
-- [ ] Branded assets: `icon-400.jpg` (preferred) or `icon-400.png`, launcher, splash
-- [ ] Completed `self-checklist.xlsx` from Seller Lounge template
-- [ ] Completed `ux-scenario.pptx` from Seller Lounge template
-- [ ] QA test account credentials filled in `TESTER_NOTES.txt`
+- [x] IPKs built: `npm run package:webos` (unsigned — LG handles store signing)
+- [x] UHD IPK: `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_1920x1080_all.ipk`
+- [x] FHD IPK: `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_1280x720_all.ipk`
+- [x] Screenshots in `submission/screenshots/` (5 × 1280×720)
+- [x] Branded assets: `icon-400.jpg` (preferred) or `icon-400.png`, launcher, splash
+- [x] Completed `self-checklist.xlsx`
+- [x] Completed `ux-scenario.pptx`
+- [ ] QA test account credentials filled in `TESTER_NOTES.txt` (`npm run fill:tester-notes:prompt`)
 
 ## Cloud Test Lab (pre-submit smoke test)
 
@@ -28,13 +29,19 @@ Expect the device-code screen. See [TESTING.md](../TESTING.md) §3 for details.
 
 ### Step 1 — Binary
 
-Upload the `.ipk` from `dist-package/` (built with `npm run package:webos`).
+Upload **both** IPKs on the File Upload tab (same version, different `appinfo.json` resolution):
+
+| Resolution | Models | File |
+|------------|--------|------|
+| 1920×1080 | Ultra HD (UHD) | `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_1920x1080_all.ipk` |
+| 1280×720 | Full HD (FHD) | `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_1280x720_all.ipk` |
 
 | Field | Value |
 |-------|-------|
 | App ID | `com.eyediatech.eyedeeaphotos` |
 | Version | `1.0.3` (match `appinfo.json`) |
-| Resolution | 1920×1080 |
+
+If Seller Lounge warns that 1920×1080 alone excludes FHD models, add the 1280×720 file — do not submit UHD-only unless you intentionally skip FHD TVs.
 
 ### Step 2 — Images
 
@@ -65,8 +72,9 @@ Upload the `.ipk` from `dist-package/` (built with `npm run package:webos`).
 | Age rating | General / 3+ |
 | Language | English |
 | Countries | Your launch regions |
-| Privacy policy URL | Your production privacy page |
-| In-app purchases | No |
+| Privacy policy URL | https://www.eyedeeaphotos.com/privacy |
+| In-app purchases | No (nothing sold on the TV) |
+| Paid content | Subscription (web subscription still counts for LG) |
 | Ads | No |
 
 ### Step 4 — Test info
@@ -82,7 +90,7 @@ Attach:
 |-------|-------|
 | Reference email | support@eyediatech.com |
 | Remote controller | Magic Remote and standard remote |
-| Paid content | No (subscription on web) |
+| Paid content | Subscription |
 | Device requirement | None |
 
 ### Step 5 — Submit

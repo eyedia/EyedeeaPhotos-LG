@@ -6,9 +6,9 @@ Within about 10 seconds the TV should switch to the photo slideshow.
 Press the Red button on the remote (or focus the gear icon and press OK) to open Settings and confirm the signed-in name and email.
 Press Log out and confirm the TV returns to a new device code screen.
 
-Test account (replace before submit):
-Email: [YOUR_QA_TEST_EMAIL]
-Password: [YOUR_QA_TEST_PASSWORD]
+Test account:
+Email: technoeyedia@gmail.com
+Password: Julia#555
 
 Notes:
 - Test account must have an active Eyedeea Photos subscription.
@@ -16,3 +16,5 @@ Notes:
 - No in-app purchases or ads.
 - Remote: Magic Remote and standard remote both supported.
 - Reference contact: support@eyediatech.com
+- App version: 1.0.3 (com.eyediatech.eyedeeaphotos)
+- Privacy policy: https://www.eyedeeaphotos.com/privacy

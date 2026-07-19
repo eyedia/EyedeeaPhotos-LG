@@ -12,6 +12,12 @@
     "preview": "vite preview",
     "icons": "node scripts/generate-icons.js",
     "submission-assets": "node scripts/generate-submission-assets.js",
+    "submission:screenshots": "node scripts/capture-submission-screenshots.mjs",
+    "submission:checklist": "node scripts/generate-self-checklist.mjs",
+    "submission:ux-scenario": "node scripts/generate-ux-scenario.mjs",
+    "fill:tester-notes": "node scripts/fill-tester-notes.mjs",
+    "fill:tester-notes:prompt": "powershell -ExecutionPolicy Bypass -File scripts/prompt-qa-credentials.ps1",
+    "submission:prepare": "npm run submission:screenshots && npm run submission:checklist && npm run submission:ux-scenario",
     "verify:env": "powershell -ExecutionPolicy Bypass -File scripts/verify-dev-env.ps1",
     "stage:webos": "powershell -ExecutionPolicy Bypass -File scripts/stage-webos.ps1 -SkipInstall",
     "sim": "powershell -ExecutionPolicy Bypass -File scripts/launch-simulator.ps1",
@@ -28,6 +34,9 @@
   "devDependencies": {
     "@vitejs/plugin-legacy": "^8.2.1",
     "@vitejs/plugin-react": "^5.2.0",
+    "exceljs": "^4.4.0",
+    "playwright": "^1.61.1",
+    "pptxgenjs": "^4.0.1",
     "sharp": "^0.35.2",
     "terser": "^5.49.0",
     "vite": "^8.1.5"

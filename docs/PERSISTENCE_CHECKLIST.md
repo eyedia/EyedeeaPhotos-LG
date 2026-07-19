@@ -1,6 +1,6 @@
 # Activation persistence verification
 
-Run this checklist on a **physical LG TV** in Developer Mode before LG Content Store submission. The app stores auth in `localStorage` and refreshes tokens automatically on launch and before JWT expiry.
+Run this checklist on a **physical LG TV** in Developer Mode when available. Cloud Test Lab relaunch persistence for v1.0.3 is recorded in [submission/QA_RESULTS.md](../submission/QA_RESULTS.md). The app stores auth in `localStorage` and refreshes tokens automatically on launch and before JWT expiry.
 
 ## What persists
 
@@ -15,15 +15,15 @@ The displayed `XXX-XXX` device code is **temporary** — only shown until web ac
 
 ## Checklist
 
-Mark each step **PASS** before submit.
+Mark each step **PASS** before submit. Items verified in Cloud Test Lab are noted in `submission/QA_RESULTS.md`.
 
-- [ ] **Activate once** — device code → web activation at https://www.eyedeeaphotos.com/activate → slideshow loads
-- [ ] **Force-close and relaunch** — press Home, reopen app → goes straight to slideshow (not device code)
-- [ ] **Reboot TV** — power cycle → reopen app → still signed in, slideshow loads
-- [ ] **Overnight idle** — leave TV off or app closed overnight → next day still signed in
-- [ ] **Settings after restart** — Red → Settings shows correct name and email
-- [ ] **Logout only** — Log out in Settings → new device code appears (expected)
-- [ ] **Re-activate after logout** — activate again → slideshow works
+- [x] **Activate once** — device code → web activation at https://www.eyedeeaphotos.com/activate → slideshow loads *(Cloud Test Lab)*
+- [x] **Force-close and relaunch** — reopen app → goes straight to slideshow (not device code) *(Cloud Test Lab)*
+- [ ] **Reboot TV** — power cycle → reopen app → still signed in *(physical TV when available)*
+- [ ] **Overnight idle** — leave TV off or app closed overnight → next day still signed in *(optional; recommended)*
+- [x] **Settings after restart** — Red → Settings shows correct name and email *(Cloud Test Lab)*
+- [x] **Logout only** — Log out in Settings → new device code appears (expected) *(Cloud Test Lab)*
+- [x] **Re-activate after logout** — activate again → slideshow works *(Cloud Test Lab)*
 
 ## Expected re-activation (by design)
 

@@ -11,9 +11,14 @@ cd D:\Work\EyedeeaPhotos-LG
 npm run package:webos
 ```
 
-Upload the `.ipk` from `dist-package/` (1920×1080 resolution). **No Seller Lounge developer certificate is required** — LG signs during QA review.
+Upload **both** `.ipk` files from `dist-package/` (same app, two graphic resolutions):
 
-Optional: build a second package at 1280×720 for older webOS models by changing `resolution` in `appinfo.json` before packaging.
+| File | Models |
+|------|--------|
+| `com.eyediatech.eyedeeaphotos_1.0.3_1920x1080_all.ipk` | Ultra HD (UHD) |
+| `com.eyediatech.eyedeeaphotos_1.0.3_1280x720_all.ipk` | Full HD (FHD) |
+
+**No Seller Lounge developer certificate is required** — LG signs during QA review. `npm run package:webos` builds both resolutions.
 
 ## 2. Required Seller Lounge assets
 
@@ -90,7 +95,7 @@ Remove template instruction slides before upload.
 |-------|-------|
 | Reference email | support@eyediatech.com |
 | Remote controller | Both Magic and standard remote |
-| Paid content | No in-app purchases (subscription on web) |
+| Paid content | Subscription (web subscription; no TV IAP) |
 | In-app ads | No |
 | Device requirement | None |
 | Geo IP block | As applicable for launch countries |

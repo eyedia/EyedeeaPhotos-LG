@@ -2,7 +2,7 @@
  * Generate LG Seller Lounge marketing images from the Eyedeea Photos brand PNG.
  */
 import sharp from 'sharp';
-import { mkdirSync } from 'fs';
+import { mkdirSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { syncBrandIcon, renderStoreIcon, STORE_ICON_BG } from './brand-icon.js';
@@ -100,9 +100,19 @@ const screenshots = [
   ['05-logout.png', 'After logout'],
 ];
 
+const forcePlaceholders = process.argv.includes('--force-screenshot-placeholders');
 for (const [filename, label] of screenshots) {
-  await renderScreenshotPlaceholder(1280, 720, label, join(outDir, 'screenshots', filename));
+  const target = join(outDir, 'screenshots', filename);
+  if (!forcePlaceholders && existsSync(target)) {
+    console.log('Keeping existing screenshot:', filename);
+    continue;
+  }
+  await renderScreenshotPlaceholder(1280, 720, label, target);
 }
 
 console.log('Generated submission assets from brand-icon-512.png');
-console.log('Replace submission/screenshots/*.png with real TV captures before LG upload.');
+if (forcePlaceholders) {
+  console.log('Screenshot placeholders written. Prefer: npm run submission:screenshots');
+} else {
+  console.log('Screenshots: use npm run submission:screenshots (or --force-screenshot-placeholders to overwrite).');
+}

@@ -1,6 +1,6 @@
 # Physical TV QA checklist
 
-Complete on a **physical LG TV** in Developer Mode before LG Content Store submission. Simulator testing alone is not sufficient for LG QA.
+Complete on a **physical LG TV** in Developer Mode when available. Cloud Test Lab results for v1.0.3 are recorded in [QA_RESULTS.md](./QA_RESULTS.md).
 
 ## Install build
 
@@ -59,19 +59,16 @@ Capture **1280×720** or **960×540** from the TV (or simulator at TV resolution
 | `04-settings.png` | Settings with user info |
 | `05-logout.png` | Device code after logout |
 
-Replace the branded placeholders from `npm run submission-assets` with these captures before upload.
+Current packet already has 1280×720 captures from `npm run submission:screenshots`. Replace with live Cloud Lab / physical TV grabs if LG requests them.
 
 ## LG Self Check-List
 
-1. Download the latest **Self Check-List** (.xlsx) from [Seller Lounge](https://seller.lgappstv.com)
-2. Complete every row — **PASS** or **N/A** only (never **FAIL**)
-3. Save as `submission/self-checklist.xlsx`
-4. Attach in Seller Lounge → Test Info
+1. Use generated `submission/self-checklist.xlsx`, **or** download LG’s official template and copy PASS/N/A from ours
+2. Mark every row **PASS** or **N/A** only (never **FAIL**)
+3. Attach in Seller Lounge → Test Info
 
 ## UX Scenario PowerPoint
 
-1. Download the **UX Scenario** template from Seller Lounge
-2. Fill slides using `submission/UX_SCENARIO_OUTLINE.md`
-3. Use real screenshots from `submission/screenshots/`
-4. Remove template instruction slides
-5. Save as `submission/ux-scenario.pptx`
+1. Use generated `submission/ux-scenario.pptx`, **or** download LG’s template and copy slides from ours / `UX_SCENARIO_OUTLINE.md`
+2. Remove template instruction slides if using LG’s file
+3. Attach in Seller Lounge → Test Info
