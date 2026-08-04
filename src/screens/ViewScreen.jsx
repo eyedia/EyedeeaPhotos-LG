@@ -2,9 +2,11 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Info, Menu, Settings } from 'lucide-react';
 import ViewPhotoInfoPanel from '../components/ViewPhotoInfoPanel';
 import { isWebOSRedKey } from '../hooks/useWebOSRemote';
+import SubscriptionRequiredScreen from './SubscriptionRequiredScreen';
 import { fetchAuthenticatedBlob, viewApi } from '../services/api';
 import { getCurrentWeather } from '../services/weatherService';
 import { useAuthStore } from '../stores/authStore';
+import { isSubscriptionAccessDeniedError } from '../utils/subscriptionAccessHold';
 import { addSizeParam, getOptimalVariantSize } from '../utils/variantHelper';
 import {
   getSubSubtitle,
@@ -170,6 +172,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
   const [optimalSize, setOptimalSize] = useState(() => getOptimalVariantSize());
   const [imageErrorPhotoId, setImageErrorPhotoId] = useState(null);
   const [imageLoadNonce, setImageLoadNonce] = useState(0);
+  const [subscriptionAccessDenied, setSubscriptionAccessDenied] = useState(false);
   const [, triggerBlobUpdate] = useReducer((x) => x + 1, 0);
 
   const maxLoadedOffsetRef = useRef(0);
@@ -185,6 +188,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
   const photosRef = useRef(photos);
   const currentIndexRef = useRef(currentIndex);
   const isInfoPanelOpenRef = useRef(false);
+  const subscriptionAccessDeniedRef = useRef(false);
 
   useEffect(() => {
     photosRef.current = photos;
@@ -273,6 +277,41 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
     [onSessionExpired]
   );
 
+  const clearViewerPollingTimers = useCallback(() => {
+    if (autoRefreshTimerRef.current) {
+      clearInterval(autoRefreshTimerRef.current);
+      autoRefreshTimerRef.current = null;
+    }
+    if (heartbeatTimerRef.current) {
+      clearInterval(heartbeatTimerRef.current);
+      heartbeatTimerRef.current = null;
+    }
+  }, []);
+
+  const handleSubscriptionAccessDenied = useCallback(
+    (error) => {
+      if (!isSubscriptionAccessDeniedError(error)) {
+        return false;
+      }
+      if (subscriptionAccessDeniedRef.current) {
+        return true;
+      }
+      subscriptionAccessDeniedRef.current = true;
+      clearViewerPollingTimers();
+      setIsLoading(false);
+      setSubscriptionAccessDenied(true);
+      return true;
+    },
+    [clearViewerPollingTimers]
+  );
+
+  const handleSubscriptionRefresh = useCallback(() => {
+    subscriptionAccessDeniedRef.current = false;
+    inFlightRef.current = false;
+    setIsLoading(true);
+    setSubscriptionAccessDenied(false);
+  }, []);
+
   const loadWeather = useCallback(async () => {
     try {
       const weatherData = await getCurrentWeather();
@@ -284,7 +323,7 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
 
   const loadQueue = useCallback(
     async (offset = 0, append = false, startPhotoId = null) => {
-      if (inFlightRef.current || !householdId) return;
+      if (inFlightRef.current || !householdId || subscriptionAccessDeniedRef.current) return;
       inFlightRef.current = true;
       if (!append) setIsLoading(true);
 
@@ -315,11 +354,14 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
                 batchPhotos = [currentPhoto, ...batchPhotos];
                 startIdx = 0;
               }
-            } catch {
+            } catch (error) {
+              if (handleSubscriptionAccessDenied(error)) return;
               // Default to first photo
             }
           }
         }
+
+        if (subscriptionAccessDeniedRef.current) return;
 
         setPhotos((prev) => (append ? mergePhotos(prev, batchPhotos) : batchPhotos));
         if (!append) {
@@ -335,9 +377,13 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
           preloadPhotos(batchPhotos, false);
         }
       } catch (error) {
+        if (handleSubscriptionAccessDenied(error)) return;
         handleApiAuthFailure(error);
         if (!append && !fetchSuccess) {
-          setTimeout(() => loadQueue(offset, append, startPhotoId), 3000);
+          setTimeout(() => {
+            if (subscriptionAccessDeniedRef.current) return;
+            loadQueue(offset, append, startPhotoId);
+          }, 3000);
           return;
         }
       } finally {
@@ -347,11 +393,11 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
         }
       }
     },
-    [handleApiAuthFailure, householdId, mergePhotos, preloadPhotos]
+    [handleApiAuthFailure, handleSubscriptionAccessDenied, householdId, mergePhotos, preloadPhotos]
   );
 
   const loadConfig = useCallback(async () => {
-    if (!householdId) return;
+    if (!householdId || subscriptionAccessDeniedRef.current) return;
     try {
       const response = await viewApi.getConfig(householdId);
       const refreshClient = Number.parseInt(response?.refresh_client, 10);
@@ -362,13 +408,14 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
           : DEFAULT_REFRESH_CLIENT_SECONDS,
       });
     } catch (error) {
+      if (handleSubscriptionAccessDenied(error)) return;
       handleApiAuthFailure(error);
     }
-  }, [handleApiAuthFailure, householdId]);
+  }, [handleApiAuthFailure, handleSubscriptionAccessDenied, householdId]);
 
   const rotateToServerPhoto = useCallback(
     async (serverPhotoId) => {
-      if (!serverPhotoId || !householdId) return;
+      if (!serverPhotoId || !householdId || subscriptionAccessDeniedRef.current) return;
 
       try {
         const batchResponse = await viewApi.getBatchMetadata(householdId, [serverPhotoId]);
@@ -407,14 +454,15 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
         setCurrentIndex(0);
         setHistory((prev) => [newPhoto, ...prev.slice(0, 11)]);
       } catch (error) {
+        if (handleSubscriptionAccessDenied(error)) return;
         handleApiAuthFailure(error);
       }
     },
-    [handleApiAuthFailure, householdId, optimalSize, setDisplayUrl]
+    [handleApiAuthFailure, handleSubscriptionAccessDenied, householdId, optimalSize, setDisplayUrl]
   );
 
   const checkForNewPhoto = useCallback(async () => {
-    if (!householdId) return;
+    if (!householdId || subscriptionAccessDeniedRef.current) return;
     try {
       const response = await viewApi.getCurrentPhotoId(householdId);
       const serverPhotoId = response?.photo_id;
@@ -426,12 +474,13 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
         await rotateToServerPhoto(serverPhotoId);
       }
     } catch (error) {
+      if (handleSubscriptionAccessDenied(error)) return;
       handleApiAuthFailure(error);
     }
-  }, [handleApiAuthFailure, householdId, rotateToServerPhoto]);
+  }, [handleApiAuthFailure, handleSubscriptionAccessDenied, householdId, rotateToServerPhoto]);
 
   useEffect(() => {
-    if (!householdId) return undefined;
+    if (!householdId || subscriptionAccessDenied) return undefined;
 
     let cancelled = false;
     const initialize = async () => {
@@ -445,14 +494,15 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
         }
         lastServerPhotoIdRef.current = serverPhotoId;
       } catch (error) {
+        if (handleSubscriptionAccessDenied(error)) return;
         handleApiAuthFailure(error);
       }
 
-      if (cancelled) return;
+      if (cancelled || subscriptionAccessDeniedRef.current) return;
       await loadQueue(0, false, serverPhotoId);
-      if (cancelled) return;
+      if (cancelled || subscriptionAccessDeniedRef.current) return;
       await loadConfig();
-      if (cancelled) return;
+      if (cancelled || subscriptionAccessDeniedRef.current) return;
       await loadWeather();
     };
 
@@ -460,15 +510,25 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
     return () => {
       cancelled = true;
     };
-  }, [handleApiAuthFailure, householdId, loadConfig, loadQueue, loadWeather]);
+  }, [
+    handleApiAuthFailure,
+    handleSubscriptionAccessDenied,
+    householdId,
+    loadConfig,
+    loadQueue,
+    loadWeather,
+    subscriptionAccessDenied,
+  ]);
 
   useEffect(() => {
-    if (!householdId) return undefined;
+    if (!householdId || subscriptionAccessDenied) return undefined;
 
     const sendHeartbeat = async () => {
+      if (subscriptionAccessDeniedRef.current) return;
       try {
         await viewApi.sendHeartbeat(householdId, activeScope);
       } catch (error) {
+        if (handleSubscriptionAccessDenied(error)) return;
         handleApiAuthFailure(error);
       }
     };
@@ -478,9 +538,16 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
     return () => {
       if (heartbeatTimerRef.current) {
         clearInterval(heartbeatTimerRef.current);
+        heartbeatTimerRef.current = null;
       }
     };
-  }, [activeScope, handleApiAuthFailure, householdId]);
+  }, [
+    activeScope,
+    handleApiAuthFailure,
+    handleSubscriptionAccessDenied,
+    householdId,
+    subscriptionAccessDenied,
+  ]);
 
   useEffect(() => {
     if (autoRefreshTimerRef.current) {
@@ -490,23 +557,30 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
 
     // Keep advancing while the info panel is open (OK toggle). Only pause for
     // the history side panel so browsing recent photos is not interrupted.
-    if (config?.refresh_client > 0 && householdId && !isPanelOpen) {
+    if (
+      config?.refresh_client > 0
+      && householdId
+      && !isPanelOpen
+      && !subscriptionAccessDenied
+    ) {
       autoRefreshTimerRef.current = setInterval(checkForNewPhoto, config.refresh_client * 1000);
     }
 
     return () => {
       if (autoRefreshTimerRef.current) {
         clearInterval(autoRefreshTimerRef.current);
+        autoRefreshTimerRef.current = null;
       }
     };
-  }, [checkForNewPhoto, config, householdId, isPanelOpen]);
+  }, [checkForNewPhoto, config, householdId, isPanelOpen, subscriptionAccessDenied]);
 
   useEffect(() => {
+    if (subscriptionAccessDenied) return undefined;
     const weatherTimer = setInterval(() => {
       loadWeather();
     }, WEATHER_REFRESH_MS);
     return () => clearInterval(weatherTimer);
-  }, [loadWeather]);
+  }, [loadWeather, subscriptionAccessDenied]);
 
   useEffect(() => {
     const isWebOsTv = () => typeof window !== 'undefined' && Boolean(window.webOS?.platform?.tv);
@@ -533,20 +607,29 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
   }, []);
 
   useEffect(() => {
-    if (photos.length === 0) return;
+    if (subscriptionAccessDenied || photos.length === 0) return;
     if (currentIndex >= photos.length - PREFETCH_THRESHOLD) {
       const nextOffset = maxLoadedOffsetRef.current + DEFAULT_QUEUE_LIMIT;
       loadQueue(nextOffset, true);
     }
-  }, [currentIndex, loadQueue, photos.length]);
+  }, [currentIndex, loadQueue, photos.length, subscriptionAccessDenied]);
 
   useEffect(() => {
-    if (!householdId || photos.length === 0) return;
+    if (!householdId || photos.length === 0 || subscriptionAccessDenied) return;
     const photo = photos[currentIndex];
     if (!photo?.photo_id || photo.photo_id === lastViewedPhotoIdRef.current) return;
     lastViewedPhotoIdRef.current = photo.photo_id;
-    viewApi.markPhotoViewed(householdId, photo.photo_id, activeScope).catch(() => {});
-  }, [activeScope, currentIndex, householdId, photos]);
+    viewApi.markPhotoViewed(householdId, photo.photo_id, activeScope).catch((error) => {
+      handleSubscriptionAccessDenied(error);
+    });
+  }, [
+    activeScope,
+    currentIndex,
+    handleSubscriptionAccessDenied,
+    householdId,
+    photos,
+    subscriptionAccessDenied,
+  ]);
 
   useEffect(() => {
     setImageErrorPhotoId(null);
@@ -961,6 +1044,10 @@ export default function ViewScreen({ onOpenSettings, onSessionExpired, onBackHan
   const anyPanelOpen = isPanelOpen || isInfoPanelOpen;
   const controlsVisible = showControls || anyPanelOpen;
   const currentPhotoHasError = currentPhoto && imageErrorPhotoId === currentPhoto.photo_id;
+
+  if (subscriptionAccessDenied) {
+    return <SubscriptionRequiredScreen onRefresh={handleSubscriptionRefresh} />;
+  }
 
   if (isLoading) {
     return (

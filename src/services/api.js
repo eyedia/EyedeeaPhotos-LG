@@ -89,7 +89,7 @@ async function request(path, options = {}) {
   if (!response.ok) {
     throw new ApiError(data?.message || data?.error_description || `Request failed (${response.status})`, {
       status: response.status,
-      code: data?.error || data?.code,
+      code: data?.code || data?.error,
       data,
     });
   }
