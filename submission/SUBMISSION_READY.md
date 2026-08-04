@@ -8,8 +8,8 @@ npm run package:webos
 
 Output (both required for full store coverage):
 
-- `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_1920x1080_all.ipk` — Ultra HD (UHD)
-- `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_1280x720_all.ipk` — Full HD (FHD)
+- `dist-package/com.eyediatech.eyedeeaphotos_1.0.4_1920x1080_all.ipk` — Ultra HD (UHD)
+- `dist-package/com.eyediatech.eyedeeaphotos_1.0.4_1280x720_all.ipk` — Full HD (FHD)
 
 **Do not require signing for store upload.** LG signs during Content Store review. Optional legacy signing (`npm run package:webos:sign`) only applies if you still have `.pem`/`.crt` files — see [docs/LG_PREREQUISITES.md](../docs/LG_PREREQUISITES.md).
 

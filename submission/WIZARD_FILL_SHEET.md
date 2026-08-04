@@ -1,12 +1,12 @@
 # Seller Lounge App Submission — field fill sheet
 
 Use this while uploading at https://seller.lgappstv.com → **App Submission**.
-Binary and assets are prepared for **v1.0.3**.
+Binary and assets are prepared for **v1.0.4**.
 
 ## Before you click through
 
-- [ ] IPK exists: `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_1920x1080_all.ipk` (UHD)
-- [ ] IPK exists: `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_1280x720_all.ipk` (FHD)
+- [ ] IPK exists: `dist-package/com.eyediatech.eyedeeaphotos_1.0.4_1920x1080_all.ipk` (UHD)
+- [ ] IPK exists: `dist-package/com.eyediatech.eyedeeaphotos_1.0.4_1280x720_all.ipk` (FHD)
 - [ ] Screenshots: `submission/screenshots/01`–`05` (1280×720)
 - [ ] Icon: `submission/icon-400.jpg` (preferred) or `.png`
 - [ ] Launcher: `submission/launcher-1920x1080.png`
@@ -21,10 +21,10 @@ Upload **both** IPKs (File Upload tab). Skipping 1280×720 excludes FHD models.
 
 | Field | Value |
 |-------|-------|
-| UHD IPK (1920×1080) | `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_1920x1080_all.ipk` |
-| FHD IPK (1280×720) | `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_1280x720_all.ipk` |
+| UHD IPK (1920×1080) | `dist-package/com.eyediatech.eyedeeaphotos_1.0.4_1920x1080_all.ipk` |
+| FHD IPK (1280×720) | `dist-package/com.eyediatech.eyedeeaphotos_1.0.4_1280x720_all.ipk` |
 | App ID | `com.eyediatech.eyedeeaphotos` |
-| Version | `1.0.3` |
+| Version | `1.0.4` |
 | Signing | Upload **unsigned** (LG signs in review) |
 
 ## Step 2 — Images

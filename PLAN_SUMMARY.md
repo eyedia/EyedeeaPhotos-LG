@@ -15,7 +15,7 @@ View-only LG Smart TV app: device-code sign-in on the TV, activation at `eyedeea
 - API: https://www.eyedeeaphotos.com/api/v1
 - Activate: https://www.eyedeeaphotos.com/activate
 - LG Seller Lounge: https://seller.lgappstv.com
-- Package: `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_1920x1080_all.ipk` + `_1280x720_all.ipk`
+- Package: `dist-package/com.eyediatech.eyedeeaphotos_1.0.4_1920x1080_all.ipk` + `_1280x720_all.ipk`
 
 ## Todo checklist
 

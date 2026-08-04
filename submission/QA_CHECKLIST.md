@@ -1,6 +1,6 @@
 # Physical TV QA checklist
 
-Complete on a **physical LG TV** in Developer Mode when available. Cloud Test Lab results for v1.0.3 are recorded in [QA_RESULTS.md](./QA_RESULTS.md).
+Complete on a **physical LG TV** in Developer Mode when available. Cloud Test Lab results for v1.0.4 are recorded in [QA_RESULTS.md](./QA_RESULTS.md).
 
 ## Install build
 
@@ -11,7 +11,7 @@ powershell -File scripts/build-ipk.ps1 -DeviceName myTV
 Or install an existing IPK:
 
 ```powershell
-ares-install -d myTV dist-package\com.eyediatech.eyedeeaphotos_1.0.3_all.ipk
+ares-install -d myTV dist-package\com.eyediatech.eyedeeaphotos_1.0.4_all.ipk
 ares-launch -d myTV com.eyediatech.eyedeeaphotos
 ```
 

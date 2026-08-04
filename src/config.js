@@ -17,7 +17,7 @@ function resolveApiBase() {
 
 export const API_BASE = resolveApiBase();
 export const ACTIVATE_URL = import.meta.env.VITE_ACTIVATE_URL || 'https://www.eyedeeaphotos.com/activate';
-export const APP_VERSION = '1.0.3';
+export const APP_VERSION = '1.0.4';
 export const APP_USER_AGENT = `EyedeeaPhotos/${APP_VERSION} (LG webOS TV; View)`;
 
 export const STORAGE_KEYS = {

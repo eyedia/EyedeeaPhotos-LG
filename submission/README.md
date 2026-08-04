@@ -15,8 +15,8 @@ powershell -File scripts/prompt-qa-credentials.ps1
 
 ## Binary
 
-- [x] `../dist-package/com.eyediatech.eyedeeaphotos_1.0.3_1920x1080_all.ipk` (UHD)
-- [x] `../dist-package/com.eyediatech.eyedeeaphotos_1.0.3_1280x720_all.ipk` (FHD)
+- [x] `../dist-package/com.eyediatech.eyedeeaphotos_1.0.4_1920x1080_all.ipk` (UHD)
+- [x] `../dist-package/com.eyediatech.eyedeeaphotos_1.0.4_1280x720_all.ipk` (FHD)
 
 ## Images
 

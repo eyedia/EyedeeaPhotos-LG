@@ -15,8 +15,8 @@ Upload **both** `.ipk` files from `dist-package/` (same app, two graphic resolut
 
 | File | Models |
 |------|--------|
-| `com.eyediatech.eyedeeaphotos_1.0.3_1920x1080_all.ipk` | Ultra HD (UHD) |
-| `com.eyediatech.eyedeeaphotos_1.0.3_1280x720_all.ipk` | Full HD (FHD) |
+| `com.eyediatech.eyedeeaphotos_1.0.4_1920x1080_all.ipk` | Ultra HD (UHD) |
+| `com.eyediatech.eyedeeaphotos_1.0.4_1280x720_all.ipk` | Full HD (FHD) |
 
 **No Seller Lounge developer certificate is required** — LG signs during QA review. `npm run package:webos` builds both resolutions.
 

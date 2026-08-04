@@ -2,7 +2,7 @@
 
 App title: **Eyedeea Photos**  
 Platform: LG webOS TV  
-Version: 1.0.3
+Version: 1.0.4
 
 ---
 

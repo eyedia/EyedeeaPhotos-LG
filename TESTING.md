@@ -176,7 +176,7 @@ The in-browser “TV + remote” UI is **webOS Cloud Test Lab** (Applications �
 npm run package:webos
 ```
 
-Upload `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_all.ipk` under **Applications → File Upload** (unsigned is correct — LG signs during store review).
+Upload `dist-package/com.eyediatech.eyedeeaphotos_1.0.4_all.ipk` under **Applications → File Upload** (unsigned is correct — LG signs during store review).
 
 1. Fill English **App Title** and **App Description** (required before Cloud Lab).
 2. Reserve a device → at the slot time click **Start**.

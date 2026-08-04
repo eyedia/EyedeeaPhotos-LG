@@ -5,8 +5,8 @@ Final submission checklist for [LG Seller Lounge](https://seller.lgappstv.com). 
 ## Before you upload
 
 - [x] IPKs built: `npm run package:webos` (unsigned — LG handles store signing)
-- [x] UHD IPK: `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_1920x1080_all.ipk`
-- [x] FHD IPK: `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_1280x720_all.ipk`
+- [x] UHD IPK: `dist-package/com.eyediatech.eyedeeaphotos_1.0.4_1920x1080_all.ipk`
+- [x] FHD IPK: `dist-package/com.eyediatech.eyedeeaphotos_1.0.4_1280x720_all.ipk`
 - [x] Screenshots in `submission/screenshots/` (5 × 1280×720)
 - [x] Branded assets: `icon-400.jpg` (preferred) or `icon-400.png`, launcher, splash
 - [x] Completed `self-checklist.xlsx`
@@ -33,13 +33,13 @@ Upload **both** IPKs on the File Upload tab (same version, different `appinfo.js
 
 | Resolution | Models | File |
 |------------|--------|------|
-| 1920×1080 | Ultra HD (UHD) | `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_1920x1080_all.ipk` |
-| 1280×720 | Full HD (FHD) | `dist-package/com.eyediatech.eyedeeaphotos_1.0.3_1280x720_all.ipk` |
+| 1920×1080 | Ultra HD (UHD) | `dist-package/com.eyediatech.eyedeeaphotos_1.0.4_1920x1080_all.ipk` |
+| 1280×720 | Full HD (FHD) | `dist-package/com.eyediatech.eyedeeaphotos_1.0.4_1280x720_all.ipk` |
 
 | Field | Value |
 |-------|-------|
 | App ID | `com.eyediatech.eyedeeaphotos` |
-| Version | `1.0.3` (match `appinfo.json`) |
+| Version | `1.0.4` (match `appinfo.json`) |
 
 If Seller Lounge warns that 1920×1080 alone excludes FHD models, add the 1280×720 file — do not submit UHD-only unless you intentionally skip FHD TVs.
 

@@ -1,6 +1,6 @@
 {
   "name": "eyedeea-photos-lg",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Eyedeea Photos view-only app for LG webOS TV",
   "private": true,
   "type": "module",
