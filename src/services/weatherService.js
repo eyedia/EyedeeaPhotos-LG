@@ -3,12 +3,17 @@ import { weatherApi } from './api';
 const CACHE_DURATION = 30 * 60 * 1000;
 const STALE_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
 const WEATHER_CACHE_STORAGE_KEY = 'weather_cache_v1';
+const GEO_TIMEOUT_MS = 5000;
 
 const weatherCacheRef = {
   data: null,
   timestamp: null,
   key: null,
 };
+
+function isWebOsTv() {
+  return typeof window !== 'undefined' && Boolean(window.webOS?.platform?.tv);
+}
 
 function readPersistedWeatherCache() {
   try {
@@ -76,19 +81,56 @@ function getAnyStaleWeatherCache() {
 }
 
 /**
- * Request browser geolocation coordinates (including on webOS TV).
+ * Request browser geolocation coordinates.
+ * Skipped on webOS TV (no geo permission / unreliable); server uses request IP.
  * Returns { lat, lon } or null if unavailable / denied / timed out.
  */
 function getBrowserCoords() {
   return new Promise((resolve) => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    if (isWebOsTv()) {
+      console.info('[weather] Skipping geolocation on webOS TV; using IP fallback');
       resolve(null);
       return;
     }
+
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      console.info('[weather] Geolocation API unavailable; using IP fallback');
+      resolve(null);
+      return;
+    }
+
+    let settled = false;
+    const finish = (coords, reason) => {
+      if (settled) return;
+      settled = true;
+      if (coords) {
+        console.info('[weather] Geolocation success', {
+          lat: coords.lat,
+          lon: coords.lon,
+        });
+      } else {
+        console.info('[weather] Geolocation unavailable; using IP fallback', { reason });
+      }
+      resolve(coords);
+    };
+
+    const hardTimeoutId = setTimeout(() => {
+      finish(null, 'hard-timeout');
+    }, GEO_TIMEOUT_MS);
+
     navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-      () => resolve(null),
-      { timeout: 5000, maximumAge: 60000 }
+      (pos) => {
+        clearTimeout(hardTimeoutId);
+        finish(
+          { lat: pos.coords.latitude, lon: pos.coords.longitude },
+          'success'
+        );
+      },
+      (error) => {
+        clearTimeout(hardTimeoutId);
+        finish(null, error?.code != null ? `error-${error.code}` : 'error');
+      },
+      { timeout: GEO_TIMEOUT_MS, maximumAge: 60000 }
     );
   });
 }
@@ -110,6 +152,10 @@ export async function getCurrentWeather() {
     const coords = await getBrowserCoords();
     const params = coords ? { lat: coords.lat, lon: coords.lon } : {};
     const cacheKey = getCacheKey(coords);
+    console.info('[weather] Fetching current weather', {
+      source: coords ? 'coords' : 'ip-fallback',
+      cacheKey,
+    });
 
     const cached = getCachedWeatherByKey(cacheKey);
     if (cached && cached.age < CACHE_DURATION) {
@@ -123,6 +169,7 @@ export async function getCurrentWeather() {
     let data = await weatherApi.getCurrent(params);
 
     if (data?.error && coords) {
+      console.info('[weather] Coords request failed; retrying with IP fallback');
       data = await weatherApi.getCurrent({});
     }
 

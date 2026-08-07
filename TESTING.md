@@ -87,11 +87,12 @@ Edit [`.env.development`](.env.development) for local URLs. Production URLs live
 
 ### Weather panels
 
-Weather is fetched from the **API** (`/weather/current`), not the activate page. On localhost/local IP:
+Weather is fetched from the **API** (`/weather/current`), not the activate page.
 
-- Browser geolocation may be blocked or unreliable
-- A **local dev API** may not resolve location from your IP
-- **webOS TV** skips browser geolocation entirely — the server must infer location from the request IP
+- On browser (Vite / desktop): the app tries `navigator.geolocation` first (hard 5s timeout). If denied, unavailable, or timed out, it calls `/weather/current` with no coords so the **server** infers location from the request IP.
+- **webOS TV** (simulator packaged app and Cloud Lab devices) **skips browser geolocation** entirely — there is no geo permission and the API is unreliable. Weather always uses server IP geolocation.
+- A **local dev API** may not resolve location from your IP; use production endpoints to test weather.
+- **LG Cloud Test Lab** egress is Korea (`1.222.94.84`). Weather on lab sessions depends on the backend resolving that IP. If the widget is blank, check Network for `GET /weather/current` and Console for `[weather]` logs; if the API returns an error or invalid payload for that egress IP, fix is server-side.
 
 **To test weather:** run `npm run dev:prod` (or `npm run build` + simulator). Sign in with a production account; weather should appear bottom-right on the slideshow when the API returns valid data.
 
@@ -185,7 +186,7 @@ Upload `dist-package/com.eyediatech.eyedeeaphotos_1.0.4_all.ipk` under **Applica
 5. If launch fails: **Re-install** → wait for success → **Launch App** again.
 6. If you re-uploaded a new IPK mid-session: **File Change** on the lab session → **Re-install** → **Launch App**.
 
-Cloud Lab egress is Korea (`1.222.94.84`). Allowlist it if your API is geo-restricted; the device-code screen should still open without that.
+Cloud Lab egress is Korea (`1.222.94.84`). Allowlist it if your API is geo-restricted; the device-code screen should still open without that. Weather uses that egress IP for location (see **Weather panels** above) — if the widget is blank after install, verify `/weather/current` succeeds for `1.222.94.84` on the backend.
 
 ## 4. Physical TV (optional)
 
